@@ -4,11 +4,11 @@
   
 ![AEGIS Banner](https://img.shields.io/badge/AEGIS-Cybersecurity%20Simulation-blue?style=for-the-badge&logo=shield&logoColor=white)
 
-[![Build Status](https://img.shields.io/github/actions/workflow/status/wastedminds1/aegis/ci.yml?branch=main&style=for-the-badge)](https://github.com/wastedminds1/aegis/actions)
-[![License](https://img.shields.io/github/license/wastedminds1/aegis?style=for-the-badge)](LICENSE)
-[![Issues](https://img.shields.io/github/issues/wastedminds1/aegis?style=for-the-badge)](https://github.com/wastedminds1/aegis/issues)
-[![Pull Requests](https://img.shields.io/github/issues-pr/wastedminds1/aegis?style=for-the-badge)](https://github.com/wastedminds1/aegis/pulls)
-[![Last Commit](https://img.shields.io/github/last-commit/wastedminds1/aegis?style=for-the-badge)](https://github.com/wastedminds1/aegis/commits/main)
+[![Build Status](https://img.shields.io/github/actions/workflow/status/Kurs-24-06/aegis/ci.yml?branch=main&style=for-the-badge)](https://github.com/Kurs-24-06/AEGIS/actions)
+[![License](https://img.shields.io/github/license/Kurs-24-06/aegis?style=for-the-badge)](LICENSE)
+[![Issues](https://img.shields.io/github/issues/Kurs-24-06/aegis?style=for-the-badge)](https://github.com/Kurs-24-06/AEGIS/issues)
+[![Pull Requests](https://img.shields.io/github/issues-pr/Kurs-24-06/aegis?style=for-the-badge)](https://github.com/Kurs-24-06/AEGIS/pulls)
+[![Last Commit](https://img.shields.io/github/last-commit/Kurs-24-06/aegis?style=for-the-badge)](https://github.com/Kurs-24-06/AEGIS/commits/main)
 
 </div>
 
