@@ -1,0 +1,122 @@
+# ----------------------------------
+# Global
+# ----------------------------------
+# Betriebssystem-Spezifisches
+.DS_Store
+Thumbs.db
+
+# IDEs/Editoren
+.idea/
+.vscode/
+*.sublime-workspace
+*.sublime-project
+
+# Logs
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Swap/Temp-Dateien
+*.swp
+*.swo
+*.tmp
+*.bak
+
+# Environment-Dateien
+.env
+.env.*
+!.env.example
+
+# ----------------------------------
+# Frontend (Angular 17+, Node.js)
+# ----------------------------------
+/frontend/node_modules/
+frontend/dist/
+frontend/.angular/
+frontend/.angular-cache/
+frontend/coverage/
+frontend/package-lock.json
+frontend/yarn.lock
+frontend/pnpm-lock.yaml
+
+# ----------------------------------
+# Backend (Golang)
+# ----------------------------------
+/backend/bin/
+/backend/build/
+backend/*.exe
+backend/*.test
+backend/*.out
+
+# Go Modul-Cache
+/backend/go/pkg/
+
+# Go generierte Abhängigkeiten (nur wenn du nicht vendor trackst)
+/backend/vendor/
+
+# ----------------------------------
+# Infrastructure (Terraform, Kubernetes, Istio, GitOps)
+# ----------------------------------
+/infrastructure/.terraform/
+infrastructure/*.tfstate
+infrastructure/*.tfstate.*
+infrastructure/*.backup
+infrastructure/.terraform.lock.hcl
+infrastructure/terraform.tfvars
+infrastructure/terraform.tfvars.json
+infrastructure/*.crash
+
+# Kustomize und Helm
+infrastructure/build/
+infrastructure/charts/
+infrastructure/*.tgz
+infrastructure/release.yaml
+
+# Lokale Kubernetes Konfiguration
+.kube/
+
+# ArgoCD lokale Configs (falls vorhanden)
+argocd-config/
+
+# ----------------------------------
+# Datenbanken (TimescaleDB, Redis, Prometheus)
+# ----------------------------------
+/data/
+*.rdb
+*.aof
+*.sqlite
+*.db
+*.dump
+*.sql
+prometheus-data/
+
+# ----------------------------------
+# Docker (optional, falls Container Builds)
+# ----------------------------------
+**/Dockerfile
+.dockerignore
+docker-compose.yml
+docker-compose.override.yml
+docker-compose.local.yml
+
+# Docker Build-Cache
+**/.docker/
+
+# ----------------------------------
+# Sonstiges
+# ----------------------------------
+# Sicherungsdateien
+*.bak
+*.tmp
+*.backup
+
+# Test-Ausgaben
+/test-results/
+.junit/
+
+# Sonstige generierte Dateien
+coverage-final.json
+nyc_output/
