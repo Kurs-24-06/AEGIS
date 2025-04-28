@@ -146,7 +146,7 @@ AEGIS (Adaptive Environment for Guided Intrusion Simulation) ermöglicht ein rea
 
 ```bash
 # Repository klonen
-git clone https://github.com/wastedminds1/aegis.git
+git clone https://github.com/Kurs-24-06/aegis.git
 cd aegis
 
 # Dependencies installieren
