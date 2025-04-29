@@ -17,7 +17,7 @@ First off, thank you for considering contributing to AEGIS! It's people like you
 
 ## Code of Conduct
 
-This project and everyone participating in it is governed by our [Code of Conduct](CODE_OF_CONDUCT.md). By participating, you are expected to uphold this code. Please report unacceptable behavior to [maintainers@example.com](mailto:maintainers@example.com).
+This project and everyone participating in it is governed by our [Code of Conduct](CODE_OF_CONDUCT.md). By participating, you are expected to uphold this code. Please report unacceptable behavior to [AEGIS@CoC.com](mailto:merlin.hellbach@icloud.com).
 
 ## Getting Started
 
