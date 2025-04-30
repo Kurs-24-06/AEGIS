@@ -41,7 +41,7 @@ jobs:
           node-version: '20'
 
       - name: Lint Backend
-        run: go vet ./...
+        run: cd backend && go vet ./...
 
       - name: Lint Frontend
         run: |
