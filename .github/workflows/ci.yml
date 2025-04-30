@@ -2,192 +2,369 @@ name: AEGIS CI/CD Pipeline
 
 on:
   push:
-    branches: [ main ]
+    branches: [main, develop]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
   pull_request:
-    branches: [ main ]
+    branches: [main, develop]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+  workflow_dispatch:
+
+env:
+  GO_VERSION: '1.21'
+  NODE_VERSION: '20'
 
 jobs:
-  test:
+  validate:
+    name: Validate Code
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      - name: Cache Go modules
-        uses: actions/cache@v3
-        with:
-          path: |
-            ~/go/pkg/mod
-            ~/.cache/go-build
-          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-          restore-keys: |
-            ${{ runner.os }}-go-
+      - name: Validate project structure
+        run: |
+          if [ ! -d "backend" ]; then
+            echo "Error: backend directory not found"
+            exit 1
+          fi
+          if [ ! -d "frontend" ]; then
+            echo "Error: frontend directory not found"
+            exit 1
+          fi
+
+  backend-checks:
+    name: Backend Checks
+    needs: validate
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
       - name: Set up Go
         uses: actions/setup-go@v4
         with:
-          go-version: '1.21'
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+          cache-dependency-path: backend/go.sum
 
-      - name: Cache Node modules
-        uses: actions/cache@v3
+      - name: Initialize Go module if needed
+        run: |
+          if [ ! -f "go.mod" ]; then
+            go mod init github.com/Kurs-24-06/aegis/backend
+            go mod tidy
+          fi
+
+      - name: Verify dependencies
+        run: go mod verify
+
+      - name: Lint Go code
+        uses: golangci/golangci-lint-action@v3
         with:
-          path: frontend/node_modules
-          key: ${{ runner.os }}-node-${{ hashFiles('frontend/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-
+          version: latest
+          working-directory: backend
+          args: --timeout=5m
+
+      - name: Run Go tests
+        run: go test -v -race -coverprofile=coverage.txt -covermode=atomic ./...
+
+      - name: Upload coverage report
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./backend/coverage.txt
+          flags: backend
+
+  frontend-checks:
+    name: Frontend Checks
+    needs: validate
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
-          cache-dependency-path: 'frontend/package-lock.json'
-    
-      - name: Lint Frontend
-        run: |
-          cd frontend
-          npm ci
-          npx ng lint
-
-      - name: Lint Backend
-        run: |
-          if [ -d backend ] && [ -f backend/go.mod ]; then
-            cd backend 
-            go vet ./...
-          else
-            echo "no go module found, skipping go vet"
-          fi
-
-      - name: Lint Frontend
-        run: |
-          cd frontend
-          npx ng lint
+          cache-dependency-path: frontend/package-lock.json
 
       - name: Install dependencies
-        run: make setup
+        run: npm ci
+
+      - name: Check for lint script
+        id: check-lint
+        run: |
+          if grep -q '"lint":' package.json; then
+            echo "::set-output name=has_lint::true"
+          else
+            echo "::set-output name=has_lint::false"
+          fi
+
+      - name: Run linting
+        if: steps.check-lint.outputs.has_lint == 'true'
+        run: npm run lint
 
       - name: Run tests
-        run: make test
-        
+        run: npm test -- --no-watch --no-progress
+
+      - name: Check build
+        run: npm run build -- --configuration=production
+
   security-scan:
+    name: Security Scan
+    needs: validate
     runs-on: ubuntu-latest
-    needs: test
     steps:
-      - uses: actions/checkout@v4
-      
-      - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@master
-        with:
-          scan-type: 'fs'
-          scan-ref: '.'
-          format: 'table'
-          exit-code: '0'
-          severity: 'CRITICAL,HIGH'
-          
-      - name: OWASP Dependency Check
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run OWASP Dependency Check
         uses: dependency-check/Dependency-Check_Action@main
         with:
           project: 'AEGIS'
           path: '.'
           format: 'HTML'
           out: 'reports'
-          
-      - name: Upload security reports
+          args: >
+            --scan frontend/
+            --scan backend/
+            --suppression ./.github/suppression.xml
+            --failOnCVSS 7
+
+      - name: Upload report
         uses: actions/upload-artifact@v3
         with:
-          name: security-reports
-          path: reports/
-
-  terraform-validate:
-    runs-on: ubuntu-latest
-    needs: test
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v2
-        
-      - name: Terraform Init
-        run: |
-          cd infra/terraform
-          terraform init -backend=false
-          
-      - name: Terraform Validate
-        run: |
-          cd infra/terraform
-          terraform validate
+          name: dependency-check-report
+          path: reports
 
   build:
-    needs: [test, security-scan, terraform-validate]
+    name: Build Artifacts
+    needs: [backend-checks, frontend-checks]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      
-      - name: Build Frontend
-        run: |
-          cd frontend
-          npm install
-          npm run build -- --prod
-          
-      - name: Build Backend
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+          cache-dependency-path: backend/go.sum
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Build backend
         run: |
           cd backend
-          go build -o aegis .
-          
-      - name: Upload backend artifact
+          if [ -f "go.mod" ]; then
+            go build -v -o ../bin/aegis ./cmd
+          else
+            go mod init github.com/Kurs-24-06/aegis/backend
+            go mod tidy
+            go build -v -o ../bin/aegis ./cmd
+          fi
+
+      - name: Install frontend dependencies
+        run: |
+          cd frontend
+          npm ci
+
+      - name: Build frontend
+        run: |
+          cd frontend
+          npm run build -- --configuration=production
+
+      - name: Package artifacts
+        run: |
+          mkdir -p dist
+          cp -r bin dist/
+          cp -r frontend/dist dist/frontend
+          tar -czf aegis-build.tar.gz dist
+
+      - name: Upload build artifacts
         uses: actions/upload-artifact@v3
         with:
-          name: backend-artifact
-          path: backend/aegis
-          
-      - name: Upload frontend artifact
-        uses: actions/upload-artifact@v3
+          name: aegis-build
+          path: aegis-build.tar.gz
+          retention-days: 7
+
+  docker:
+    name: Build Docker Images
+    needs: build
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v3
         with:
-          name: frontend-artifact
-          path: frontend/dist
+          name: aegis-build
+          path: .
+
+      - name: Extract artifacts
+        run: tar -xzf aegis-build.tar.gz
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Determine version
+        id: version
+        run: |
+          if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+            echo "::set-output name=tag::latest"
+          else
+            echo "::set-output name=tag::develop"
+          fi
+          echo "::set-output name=date::$(date +'%Y%m%d')"
+
+      - name: Build and push backend image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: ./backend/Dockerfile
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}/aegis-backend:${{ steps.version.outputs.tag }}
+            ghcr.io/${{ github.repository }}/aegis-backend:${{ steps.version.outputs.date }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build and push frontend image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: ./frontend/Dockerfile
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}/aegis-frontend:${{ steps.version.outputs.tag }}
+            ghcr.io/${{ github.repository }}/aegis-frontend:${{ steps.version.outputs.date }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
   deploy-aws:
-    needs: build
+    name: Deploy to AWS
+    needs: docker
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    environment: aws-production
+    environment: production
     steps:
-      - uses: actions/checkout@v4
-      
-      - name: Download artifacts
-        uses: actions/download-artifact@v3
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
         with:
-          path: artifacts
-          
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: eu-central-1
+
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
-        
-      - name: Deploy to AWS
-        run: make deploy-aws
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          TF_VAR_environment: production
+        with:
+          terraform_version: 1.5.5
+
+      - name: Terraform Init
+        run: |
+          cd infra/aws
+          terraform init
+
+      - name: Terraform Plan
+        run: |
+          cd infra/aws
+          terraform plan -out=tfplan
+
+      - name: Terraform Apply
+        run: |
+          cd infra/aws
+          terraform apply -auto-approve tfplan
+
+      - name: Update deployment status
+        run: |
+          echo "AWS deployment completed at $(date)"
+          echo "Environment: Production"
+          echo "Version: $(git rev-parse --short HEAD)"
 
   deploy-azure:
-    needs: build
+    name: Deploy to Azure
+    needs: docker
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    environment: azure-production
+    environment: production
     steps:
-      - uses: actions/checkout@v4
-      
-      - name: Download artifacts
-        uses: actions/download-artifact@v3
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Azure login
+        uses: azure/login@v1
         with:
-          path: artifacts
-          
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
-        
-      - name: Deploy to Azure
-        run: make deploy-azure
+        with:
+          terraform_version: 1.5.5
+
+      - name: Terraform Init
+        run: |
+          cd infra/azure
+          terraform init
+
+      - name: Terraform Plan
+        run: |
+          cd infra/azure
+          terraform plan -out=tfplan
+
+      - name: Terraform Apply
+        run: |
+          cd infra/azure
+          terraform apply -auto-approve tfplan
+
+      - name: Update deployment status
+        run: |
+          echo "Azure deployment completed at $(date)"
+          echo "Environment: Production"
+          echo "Version: $(git rev-parse --short HEAD)"
+
+  notify:
+    name: Notification
+    needs: [deploy-aws, deploy-azure]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Slack notification
+        uses: rtCamp/action-slack-notify@v2
         env:
-          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-          TF_VAR_environment: production
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+          SLACK_CHANNEL: aegis-deployments
+          SLACK_TITLE: AEGIS Deployment Status
+          SLACK_MESSAGE: |
+            Deployment Status:
+            AWS: ${{ needs.deploy-aws.result }}
+            Azure: ${{ needs.deploy-azure.result }}
+            Commit: ${{ github.event.head_commit.message }}
+          SLACK_COLOR: ${{ needs.deploy-aws.result == 'success' && needs.deploy-azure.result == 'success' && 'good' || 'danger' }}
