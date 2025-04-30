@@ -1,0 +1,16 @@
+{
+  "recommendations": [
+    "dbaeumer.vscode-eslint",
+    "esbenp.prettier-vscode",
+    "formulahendry.auto-rename-tag",
+    "formulahendry.auto-close-tag",
+    "angular.ng-template",
+    "nrwl.angular-console",
+    "johnpapa.angular2",
+    "mikael.angular-beastcode",
+    "editorconfig.editorconfig",
+    "streetsidesoftware.code-spell-checker",
+    "eamodio.gitlens",
+    "cschleiden.vscode-github-actions"
+  ]
+}

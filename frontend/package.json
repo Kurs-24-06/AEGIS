@@ -9,7 +9,12 @@
     "test": "jest",
     "test:e2e": "cypress run",
     "serve:ssr:frontend": "node dist/frontend/server/server.mjs",
-     "release": "standard-version"
+    "release": "standard-version",
+    "prepare": "husky install",
+    "lint": "ng lint",
+    "lint:fix": "ng lint --fix",
+    "format": "prettier --write \"src/**/*.{ts,html,css,scss}\"",
+    "precommit": "lint-staged"
   },
   "private": true,
   "dependencies": {
@@ -32,15 +37,32 @@
     "@angular-devkit/build-angular": "^17.3.16",
     "@angular/cli": "^17.3.16",
     "@angular/compiler-cli": "^17.3.0",
+    "@commitlint/cli": "^19.8.0",
+    "@commitlint/config-conventional": "^19.8.0",
     "@types/express": "^4.17.17",
     "@types/jasmine": "~5.1.0",
     "@types/node": "^18.18.0",
+    "angular-eslint": "19.3.0",
+    "eslint": "^9.25.1",
+    "husky": "^9.1.7",
     "jasmine-core": "~5.1.0",
     "karma": "~6.4.0",
     "karma-chrome-launcher": "~3.2.0",
     "karma-coverage": "~2.2.0",
     "karma-jasmine": "~5.1.0",
     "karma-jasmine-html-reporter": "~2.1.0",
-    "typescript": "~5.4.2"
+    "lint-staged": "^15.5.1",
+    "prettier": "^3.5.3",
+    "typescript": "~5.4.2",
+    "typescript-eslint": "8.27.0"
+  },
+  "lint-staged": {
+    "**/*.{ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "**/*.{html,css,scss,json}": [
+      "prettier --write"
+    ]
   }
 }

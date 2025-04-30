@@ -235,13 +235,10 @@ jobs:
       - name: Determine version
         id: version
         run: |
-          if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
-            echo "::set-output name=tag::latest"
-          else
-            echo "::set-output name=tag::develop"
-          fi
-          echo "::set-output name=date::$(date +'%Y%m%d')"
-
+            VERSION=$(cat VERSION)
+            echo "::set-output name=version::$VERSION"
+            echo "::set-output name=tag::$VERSION"
+            echo "::set-output name=date::$(date +'%Y%m%d')"
       - name: Build and push backend image
         uses: docker/build-push-action@v4
         with:
@@ -249,6 +246,7 @@ jobs:
           file: ./backend/Dockerfile
           push: true
           tags: |
+            ghcr.io/${{ github.repository }}/aegis-backend:${{ steps.version.outputs.version }}
             ghcr.io/${{ github.repository }}/aegis-backend:${{ steps.version.outputs.tag }}
             ghcr.io/${{ github.repository }}/aegis-backend:${{ steps.version.outputs.date }}
           cache-from: type=gha
@@ -368,3 +366,6 @@ jobs:
             Azure: ${{ needs.deploy-azure.result }}
             Commit: ${{ github.event.head_commit.message }}
           SLACK_COLOR: ${{ needs.deploy-aws.result == 'success' && needs.deploy-azure.result == 'success' && 'good' || 'danger' }}
+      - name: Set version
+        run: |
+          echo "VERSION=$(cat VERSION)" >> $GITHUB_ENV

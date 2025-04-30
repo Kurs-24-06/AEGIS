@@ -1,122 +1,180 @@
 # ----------------------------------
-# Global
+# Global Patterns
 # ----------------------------------
-# Betriebssystem-Spezifisches
+# Operating System Files
 .DS_Store
 Thumbs.db
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Desktop.ini
 
-# IDEs/Editoren
+# IDE and Editor Files
 .idea/
-.vscode/
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
 *.sublime-workspace
 *.sublime-project
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+.history/
 
-# Logs
+# Log Files
 *.log
 logs/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+lerna-debug.log*
 
-# Swap/Temp-Dateien
+# Temporary Files
 *.swp
 *.swo
 *.tmp
 *.bak
+*~
+*.cache
+*.pid
+*.seed
+.nyc_output/
+.coverage
+.grunt
+.lock-wscript
 
-# Environment-Dateien
+# Environment Files
 .env
 .env.*
 !.env.example
+.npmrc
 
 # ----------------------------------
-# Frontend (Angular 17+, Node.js)
+# Frontend (Angular) Specific
 # ----------------------------------
+# Dependencies and Builds
 /frontend/node_modules/
-frontend/dist/
-frontend/.angular/
-frontend/.angular-cache/
-frontend/coverage/
-frontend/package-lock.json
-frontend/yarn.lock
-frontend/pnpm-lock.yaml
+/frontend/dist/
+/frontend/.angular/
+/frontend/.angular-cache/
+
+# Testing
+/frontend/coverage/
+/frontend/.karma/
+/frontend/.cypress/
+/frontend/cypress/screenshots/
+/frontend/cypress/videos/
+
+# Package Files
+# Uncomment the following lines only if you don't want to commit lock files
+# /frontend/package-lock.json
+# /package-lock.json
+# /frontend/yarn.lock
+# /yarn.lock
+# /frontend/pnpm-lock.yaml
+# /pnpm-lock.yaml
+
+# Generated Files
+/frontend/.sass-cache/
+/frontend/connect.lock
+/frontend/libpeerconnection.log
+/frontend/testem.log
+/frontend/typings/
 
 # ----------------------------------
-# Backend (Golang)
+# Backend (Golang) Specific
 # ----------------------------------
+# Binaries and Builds
 /backend/bin/
 /backend/build/
-backend/*.exe
-backend/*.test
-backend/*.out
+/backend/*/bin/
+/backend/*.exe
+/backend/*.exe~
+/backend/*.dll
+/backend/*.so
+/backend/*.dylib
+/backend/*.test
+/backend/*.out
+/backend/coverage.txt
 
-# Go Modul-Cache
+# Go Specific
+/backend/go.work
 /backend/go/pkg/
-
-# Go generierte Abhängigkeiten (nur wenn du nicht vendor trackst)
 /backend/vendor/
 
 # ----------------------------------
-# Infrastructure (Terraform, Kubernetes, Istio, GitOps)
+# Infrastructure (Terraform, Kubernetes, etc.)
 # ----------------------------------
+# Terraform
 /infrastructure/.terraform/
-infrastructure/*.tfstate
-infrastructure/*.tfstate.*
-infrastructure/*.backup
-infrastructure/.terraform.lock.hcl
-infrastructure/terraform.tfvars
-infrastructure/terraform.tfvars.json
-infrastructure/*.crash
+/infra/**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.example.tfvars
+*.backup
+.terraform.lock.hcl
+.terraformrc
+terraform.rc
+crash.log
 
-# Kustomize und Helm
-infrastructure/build/
-infrastructure/charts/
-infrastructure/*.tgz
-infrastructure/release.yaml
-
-# Lokale Kubernetes Konfiguration
+# Kubernetes and Helm
 .kube/
-
-# ArgoCD lokale Configs (falls vorhanden)
+kubeconfig
+*.kubeconfig
+charts/**/charts/
+*.tgz
+*.tar.gz
+**/rendered/
 argocd-config/
+*.generated.yaml
 
 # ----------------------------------
-# Datenbanken (TimescaleDB, Redis, Prometheus)
+# Database
 # ----------------------------------
 /data/
 *.rdb
 *.aof
 *.sqlite
+*.sqlite3
 *.db
 *.dump
 *.sql
 prometheus-data/
 
 # ----------------------------------
-# Docker (optional, falls Container Builds)
+# Docker
 # ----------------------------------
-**/Dockerfile
-.dockerignore
-docker-compose.yml
+.docker/
 docker-compose.override.yml
 docker-compose.local.yml
 
-# Docker Build-Cache
-**/.docker/
-
 # ----------------------------------
-# Sonstiges
+# Test and CI
 # ----------------------------------
-# Sicherungsdateien
-*.bak
-*.tmp
-*.backup
-
-# Test-Ausgaben
 /test-results/
 .junit/
-
-# Sonstige generierte Dateien
 coverage-final.json
-nyc_output/
+reports/
+test-output/
+storybook-static/
+
+# ----------------------------------
+# Misc
+# ----------------------------------
+.cache/
+dist-ssr
+*.local
+.vercel
+.netlify
+*.tsbuildinfo
+next-env.d.ts
+.next/
+node_modules
