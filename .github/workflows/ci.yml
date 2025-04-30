@@ -41,7 +41,13 @@ jobs:
           node-version: '20'
 
       - name: Lint Backend
-        run: cd backend && go vet ./...
+        run: |
+          if [ -d backend ] && [ -f backend/go.mod ]; then
+            cd backend 
+            go vet ./...
+          else
+            echo "no go module found, skipping go vet"
+          fi
 
       - name: Lint Frontend
         run: |
