@@ -17,6 +17,7 @@ module.exports = {
         "chore", // Other changes that don't modify src or test files
         "revert", // Reverts a previous commit
         "wip", // Work in progress
+        "simulation", // Changes to simulation capabilities or scenarios
       ],
     ],
     "subject-case": [0],

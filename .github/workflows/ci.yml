@@ -4,20 +4,44 @@ on:
   push:
     branches: [main, develop]
     paths-ignore:
-      - '**.md'
-      - 'docs/**'
+      - "**.md"
+      - "docs/**"
   pull_request:
     branches: [main, develop]
     paths-ignore:
-      - '**.md'
-      - 'docs/**'
+      - "**.md"
+      - "docs/**"
   workflow_dispatch:
 
 env:
-  GO_VERSION: '1.21'
-  NODE_VERSION: '20'
+  GO_VERSION: "1.21"
+  NODE_VERSION: "20"
 
 jobs:
+  commit-lint:
+    name: Lint Commit Messages
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install dependencies
+        run: npm install --save-dev @commitlint/cli @commitlint/config-conventional
+
+      - name: Lint commit messages
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            npx commitlint --from ${{ github.event.pull_request.base.sha }} --to ${{ github.event.pull_request.head.sha }} --verbose
+          else
+            npx commitlint --from HEAD~1 --to HEAD --verbose
+          fi
   validate:
     name: Validate Code
     runs-on: ubuntu-latest
@@ -95,7 +119,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
+          cache: "npm"
           cache-dependency-path: frontend/package-lock.json
 
       - name: Install dependencies
@@ -131,10 +155,10 @@ jobs:
       - name: Run OWASP Dependency Check
         uses: dependency-check/Dependency-Check_Action@main
         with:
-          project: 'AEGIS'
-          path: '.'
-          format: 'HTML'
-          out: 'reports'
+          project: "AEGIS"
+          path: "."
+          format: "HTML"
+          out: "reports"
           args: >
             --scan frontend/
             --scan backend/
@@ -166,7 +190,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
+          cache: "npm"
           cache-dependency-path: frontend/package-lock.json
 
       - name: Build backend
@@ -235,10 +259,10 @@ jobs:
       - name: Determine version
         id: version
         run: |
-            VERSION=$(cat VERSION)
-            echo "::set-output name=version::$VERSION"
-            echo "::set-output name=tag::$VERSION"
-            echo "::set-output name=date::$(date +'%Y%m%d')"
+          VERSION=$(cat VERSION)
+          echo "::set-output name=version::$VERSION"
+          echo "::set-output name=tag::$VERSION"
+          echo "::set-output name=date::$(date +'%Y%m%d')"
       - name: Build and push backend image
         uses: docker/build-push-action@v4
         with:
