@@ -14,23 +14,20 @@
 // ***********************************************************
 
 // Import commands.js using ES2015 syntax:
-import './commands'
+import './commands';
 
-import { mount } from 'cypress/angular'
+// Import Angular testing libraries
+import { mount } from 'cypress/angular';
 
-// Augment the Cypress namespace to include type definitions for
-// your custom command.
-// Alternatively, can be defined in cypress/support/component.d.ts
-// with a <reference path="./component" /> at the top of your spec.
+// Replace namespace with alternative approach
+// Add Cypress commands for Angular component testing
 declare global {
-  namespace Cypress {
-    interface Chainable {
-      mount: typeof mount
-    }
+  interface Cypress {
+    mount: typeof mount;
   }
 }
 
-Cypress.Commands.add('mount', mount)
+Cypress.Commands.add('mount', mount);
 
 // Example use:
 // cy.mount(MyComponent)

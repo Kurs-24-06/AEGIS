@@ -17,7 +17,7 @@ interface VersionInfo {
       <span class="version-label">Version:</span>
       <span class="version-value">{{ versionInfo?.version || 'Unknown' }}</span>
       <span class="version-timestamp" *ngIf="versionInfo?.buildTimestamp">
-        (Built: {{ formatDate(versionInfo.buildTimestamp) }})
+        (Built: {{ formatDate(versionInfo?.buildTimestamp) }})
       </span>
     </div>
   `,
@@ -58,8 +58,8 @@ export class VersionDisplayComponent implements OnInit {
       next: (data) => {
         this.versionInfo = data;
       },
-      error: (error) => {
-        console.error('Failed to load version information', error);
+      error: () => {
+        console.error('Failed to load version information');
         // Fallback to empty version info
         this.versionInfo = {
           version: 'dev',
@@ -70,7 +70,11 @@ export class VersionDisplayComponent implements OnInit {
     });
   }
 
-  formatDate(isoDate: string): string {
+  formatDate(isoDate: string | null | undefined): string {
+    if (!isoDate) {
+      return 'Unknown date';
+    }
+
     try {
       const date = new Date(isoDate);
       return date.toLocaleDateString(undefined, {
@@ -78,7 +82,8 @@ export class VersionDisplayComponent implements OnInit {
         month: 'short',
         day: 'numeric',
       });
-    } catch (e) {
+    } catch {
+      // Catch without parameter to avoid unused variable
       return isoDate;
     }
   }
