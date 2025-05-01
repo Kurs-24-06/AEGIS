@@ -1,0 +1,29 @@
+# backend/config/config.test.yaml
+server:
+  port: 8081 # Verwenden Sie einen anderen Port für Tests
+  debug: true
+  cors:
+    allowed_origins: ["*"]
+    allowed_methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+    allowed_headers: ["Authorization", "Content-Type"]
+
+database:
+  type: "sqlite" # Verwenden Sie SQLite für Tests
+  path: ":memory:" # In-Memory-Datenbank für Tests
+
+redis:
+  mock: true # Verwenden Sie einen Redis-Mock für Tests
+
+simulation:
+  worker_count: 1
+  buffer_size: 100
+  default_timeout_seconds: 10
+
+logging:
+  level: "error" # Minimal-Logging während Tests
+  format: "text"
+
+auth:
+  enabled: true
+  jwt_secret: "test-secret-key"
+  token_expiry: "1h"

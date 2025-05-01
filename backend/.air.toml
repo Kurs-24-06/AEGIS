@@ -1,0 +1,44 @@
+# Hot reload configuration for Go backend
+root = "."
+tmp_dir = "tmp"
+
+[build]
+# Just plain main.go file
+cmd = "go build -o ./tmp/main ./cmd"
+# Binary file yielded from `cmd`
+bin = "tmp/main"
+# Customize binary, can setup environment variables or arguments
+full_bin = "ENVIRONMENT=development ./tmp/main"
+# Watch these directories for changes
+include_ext = ["go", "yaml", "yml", "json"]
+# Ignore these directories
+exclude_dir = ["tmp", "vendor", "node_modules", "frontend"]
+# Watch these specific files
+include_file = []
+# Exclude files
+exclude_file = []
+# Exclude unchanged files
+exclude_unchanged = true
+# Since idle_timeout is not working on Windows, this is a fallback.
+delay = 1000 # ms
+# Stop running old binary when build errors occur
+stop_on_error = true
+# Send interrupt signal before killing process
+send_interrupt = true
+# Kill process after specified delay in seconds
+kill_delay = 2 # seconds
+
+[log]
+# Show log time
+time = true
+
+[color]
+# Customize each part's color. If no color found, use the default.
+main = "magenta"
+watcher = "cyan"
+build = "yellow"
+runner = "green"
+
+[misc]
+# Delete tmp directory on exit
+clean_on_exit = true

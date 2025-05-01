@@ -1,0 +1,39 @@
+# Production Environment Configuration
+environment: prod
+domain: aegis-security.com
+replicas:
+  frontend: 3
+  backend: 5
+resources:
+  frontend:
+    cpu: "2"
+    memory: "2Gi"
+  backend:
+    cpu: "2"
+    memory: "4Gi"
+  database:
+    storage: "50Gi"
+    cpu: "4"
+    memory: "8Gi"
+features:
+  experimental: false
+  debugMode: false
+  metrics: true
+logging:
+  level: "warn"
+  retention: "30d"
+database:
+  backupSchedule: "0 */6 * * *" # Every 6 hours
+  backupRetention: "30d"
+monitoring:
+  alerting: true
+  alertReceivers:
+    - email: "devops@aegis-security.com"
+    - email: "security@aegis-security.com"
+    - sms: "+1234567890"
+  dashboards:
+    - name: "overview"
+    - name: "performance"
+    - name: "security"
+    - name: "usage"
+    - name: "business"

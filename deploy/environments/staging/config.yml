@@ -1,0 +1,36 @@
+# Staging Environment Configuration
+environment: staging
+domain: staging.aegis-security.com
+replicas:
+  frontend: 2
+  backend: 3
+resources:
+  frontend:
+    cpu: "1"
+    memory: "1Gi"
+  backend:
+    cpu: "1"
+    memory: "1Gi"
+  database:
+    storage: "20Gi"
+    cpu: "2"
+    memory: "2Gi"
+features:
+  experimental: true
+  debugMode: false
+  metrics: true
+logging:
+  level: "info"
+  retention: "14d"
+database:
+  backupSchedule: "0 0 * * *" # Daily at midnight
+  backupRetention: "14d"
+monitoring:
+  alerting: true
+  alertReceivers:
+    - email: "devops@aegis-security.com"
+  dashboards:
+    - name: "overview"
+    - name: "performance"
+    - name: "security"
+    - name: "usage"

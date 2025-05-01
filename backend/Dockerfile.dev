@@ -1,0 +1,34 @@
+# Backend Development Dockerfile
+FROM golang:1.21-alpine
+
+# Set working directory
+WORKDIR /app
+
+# Install development tools
+RUN apk add --no-cache git curl make gcc musl-dev
+
+# Install development tools
+RUN go install github.com/cosmtrek/air@latest && \
+    go install github.com/go-delve/delve/cmd/dlv@latest && \
+    go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+
+# Copy go.mod and go.sum first for better caching
+COPY go.mod go.sum* ./
+
+# Download dependencies
+RUN go mod download
+
+# Copy the source code
+COPY . .
+
+# Set environment variable for development
+ENV ENVIRONMENT=development
+
+# Expose API port
+EXPOSE 8080
+
+# Expose delve debugging port
+EXPOSE 2345
+
+# Use air for hot reload during development
+CMD ["air", "-c", ".air.toml"]

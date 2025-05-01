@@ -1,0 +1,36 @@
+# backend/config/config.staging.yaml
+server:
+  port: 8080
+  debug: false
+  cors:
+    allowed_origins: ["https://staging.aegis-security.com"]
+    allowed_methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+    allowed_headers: ["Authorization", "Content-Type"]
+
+database:
+  type: "postgres"
+  host: "${DB_HOST}"
+  port: ${DB_PORT}
+  user: "${DB_USER}"
+  password: "${DB_PASSWORD}"
+  name: "${DB_NAME}"
+  sslMode: "require"
+
+redis:
+  host: "${REDIS_HOST}"
+  port: ${REDIS_PORT}
+  password: "${REDIS_PASSWORD}"
+
+simulation:
+  worker_count: 4
+  buffer_size: 5000
+  default_timeout_seconds: 600
+
+logging:
+  level: "info"
+  format: "json"
+
+auth:
+  enabled: true
+  jwt_secret: "${JWT_SECRET}"
+  token_expiry: "12h"
