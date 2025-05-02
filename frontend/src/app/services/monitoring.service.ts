@@ -1,108 +1,230 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, of, throwError } from 'rxjs';
-import { catchError, map, tap } from 'rxjs/operators';
+import { Observable, of, Subject, BehaviorSubject } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
 
-export interface SystemMetric {
-  name: string;
-  value: number;
-  timestamp: string;
-  status: 'normal' | 'warning' | 'critical';
+export interface SimulationStatus {
+  id: string;
+  status:
+    | 'not_started'
+    | 'running'
+    | 'paused'
+    | 'completed'
+    | 'stopped'
+    | 'failed';
+  runtime: string;
+  threatsDetected: number;
+  compromisedResources: number;
+  progress: number;
 }
 
-export interface SystemStatus {
-  overall: 'healthy' | 'degraded' | 'critical';
-  metrics: SystemMetric[];
-  lastUpdated: string;
+export interface SimulationEvent {
+  id: string;
+  timestamp: string;
+  type:
+    | 'discovery'
+    | 'escalation'
+    | 'exploitation'
+    | 'lateral_movement'
+    | 'data_exfiltration'
+    | 'system';
+  description: string;
+  resourceId?: string;
+  severity: 'info' | 'low' | 'medium' | 'high' | 'critical';
+}
+
+export interface AffectedResource {
+  id: string;
+  name: string;
+  type: string;
+  status: 'normal' | 'vulnerable' | 'attacked' | 'compromised';
+  threatLevel: number;
+  attackVector?: string;
 }
 
 @Injectable({
   providedIn: 'root',
 })
 export class MonitoringService {
-  private apiUrl = `${environment.apiBaseUrl}/monitoring`;
-  private cachedStatus: SystemStatus | null = null;
+  private apiUrl = `${environment.apiUrl}/monitoring`;
+
+  // Observable sources
+  private simulationStatusSubject =
+    new BehaviorSubject<SimulationStatus | null>(null);
+  private simulationEventsSubject = new Subject<SimulationEvent>();
+  private affectedResourcesSubject = new BehaviorSubject<AffectedResource[]>(
+    [],
+  );
+
+  // Observable streams
+  simulationStatus$ = this.simulationStatusSubject.asObservable();
+  simulationEvents$ = this.simulationEventsSubject.asObservable();
+  affectedResources$ = this.affectedResourcesSubject.asObservable();
 
   constructor(private http: HttpClient) {}
 
   /**
-   * Get the current system status with metrics
+   * Start a simulation
    */
-  getSystemStatus(): Observable<SystemStatus> {
-    return this.http.get<SystemStatus>(`${this.apiUrl}/status`).pipe(
-      tap((status) => {
-        this.cachedStatus = status;
-      }),
-      catchError((error) => {
-        console.error('Error fetching system status:', error);
-
-        // If we have cached data, return that instead of failing
-        if (this.cachedStatus) {
-          return of({
-            ...this.cachedStatus,
-            overall: 'degraded', // Mark as degraded since we couldn't refresh
-          });
-        }
-
-        // Otherwise create a fallback status
-        return of(this.createFallbackStatus());
-      }),
-    );
-  }
-
-  /**
-   * Get a specific metric's history
-   */
-  getMetricHistory(
-    metricName: string,
-    timeRange: 'hour' | 'day' | 'week',
-  ): Observable<SystemMetric[]> {
+  startSimulation(simulationId: string): Observable<SimulationStatus> {
     return this.http
-      .get<
-        SystemMetric[]
-      >(`${this.apiUrl}/metrics/${metricName}/history?timeRange=${timeRange}`)
+      .post<SimulationStatus>(
+        `${this.apiUrl}/simulations/${simulationId}/start`,
+        {},
+      )
       .pipe(
         catchError((error) => {
-          console.error(
-            `Error fetching metric history for ${metricName}:`,
-            error,
-          );
-          return throwError(
-            () => new Error(`Failed to load history for ${metricName}`),
-          );
+          console.error('Error starting simulation:', error);
+          return of({
+            id: simulationId,
+            status: 'failed',
+            runtime: '00:00:00',
+            threatsDetected: 0,
+            compromisedResources: 0,
+            progress: 0,
+          });
         }),
       );
   }
 
   /**
-   * Get all available metrics names
+   * Pause a simulation
    */
-  getAvailableMetrics(): Observable<string[]> {
-    return this.http.get<{ metrics: string[] }>(`${this.apiUrl}/metrics`).pipe(
-      map((response) => response.metrics),
-      catchError((error) => {
-        console.error('Error fetching available metrics:', error);
-        return throwError(() => new Error('Failed to load available metrics'));
-      }),
-    );
+  pauseSimulation(simulationId: string): Observable<SimulationStatus> {
+    return this.http
+      .post<SimulationStatus>(
+        `${this.apiUrl}/simulations/${simulationId}/pause`,
+        {},
+      )
+      .pipe(
+        catchError((error) => {
+          console.error('Error pausing simulation:', error);
+          return of({
+            id: simulationId,
+            status: 'failed',
+            runtime: '00:00:00',
+            threatsDetected: 0,
+            compromisedResources: 0,
+            progress: 0,
+          });
+        }),
+      );
   }
 
   /**
-   * Create a fallback status in case of API failure
+   * Stop a simulation
    */
-  private createFallbackStatus(): SystemStatus {
-    return {
-      overall: 'degraded',
-      metrics: [
-        {
-          name: 'API Connection',
-          value: 0,
-          timestamp: new Date().toISOString(),
-          status: 'critical',
-        },
-      ],
-      lastUpdated: new Date().toISOString(),
+  stopSimulation(simulationId: string): Observable<SimulationStatus> {
+    return this.http
+      .post<SimulationStatus>(
+        `${this.apiUrl}/simulations/${simulationId}/stop`,
+        {},
+      )
+      .pipe(
+        catchError((error) => {
+          console.error('Error stopping simulation:', error);
+          return of({
+            id: simulationId,
+            status: 'failed',
+            runtime: '00:00:00',
+            threatsDetected: 0,
+            compromisedResources: 0,
+            progress: 0,
+          });
+        }),
+      );
+  }
+
+  /**
+   * Get affected resources in the current simulation
+   */
+  getAffectedResources(simulationId: string): Observable<AffectedResource[]> {
+    return this.http
+      .get<
+        AffectedResource[]
+      >(`${this.apiUrl}/simulations/${simulationId}/resources`)
+      .pipe(
+        catchError((error) => {
+          console.error('Error getting affected resources:', error);
+          return of([]);
+        }),
+      );
+  }
+
+  /**
+   * Get events from the current simulation
+   */
+  getSimulationEvents(
+    simulationId: string,
+    limit = 20,
+  ): Observable<SimulationEvent[]> {
+    return this.http
+      .get<
+        SimulationEvent[]
+      >(`${this.apiUrl}/simulations/${simulationId}/events?limit=${limit}`)
+      .pipe(
+        catchError((error) => {
+          console.error('Error getting simulation events:', error);
+          return of([]);
+        }),
+      );
+  }
+
+  /**
+   * Get current status of a simulation
+   */
+  getSimulationStatus(simulationId: string): Observable<SimulationStatus> {
+    return this.http
+      .get<SimulationStatus>(
+        `${this.apiUrl}/simulations/${simulationId}/status`,
+      )
+      .pipe(
+        catchError((error) => {
+          console.error('Error getting simulation status:', error);
+          return of({
+            id: simulationId,
+            status: 'not_started',
+            runtime: '00:00:00',
+            threatsDetected: 0,
+            compromisedResources: 0,
+            progress: 0,
+          });
+        }),
+      );
+  }
+
+  /**
+   * Connect to WebSocket for real-time updates
+   * In a real implementation, this would connect to a WebSocket
+   */
+  connectToRealtimeUpdates(simulationId: string): void {
+    console.log(
+      `Connecting to real-time updates for simulation ${simulationId}`,
+    );
+
+    // In a real implementation, this would be a WebSocket connection
+    // For now, we'll simulate updates with setTimeout
+
+    // Simulate initial status
+    const initialStatus: SimulationStatus = {
+      id: simulationId,
+      status: 'not_started',
+      runtime: '00:00:00',
+      threatsDetected: 0,
+      compromisedResources: 0,
+      progress: 0,
     };
+
+    this.simulationStatusSubject.next(initialStatus);
+    this.affectedResourcesSubject.next([]);
+  }
+
+  /**
+   * Disconnect from WebSocket
+   */
+  disconnectFromRealtimeUpdates(): void {
+    console.log('Disconnecting from real-time updates');
+    // In a real implementation, this would close the WebSocket connection
   }
 }

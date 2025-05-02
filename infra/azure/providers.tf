@@ -1,23 +1,20 @@
-provider "aws" {
-  region = var.region
+provider "azurerm" {
+  features {}
 
   # Default tags to apply to all resources
-  default_tags {
-    tags = {
-      Project     = "AEGIS"
-      Environment = terraform.workspace
-      ManagedBy   = "Terraform"
-    }
+  tags = {
+    Project     = "AEGIS"
+    Environment = terraform.workspace
+    ManagedBy   = "Terraform"
   }
 }
 
 # Use the shared state backend configuration
 terraform {
-  backend "s3" {
-    bucket         = "aegis-terraform-state"
-    key            = "aws/terraform.tfstate"
-    region         = "eu-central-1"
-    dynamodb_table = "aegis-terraform-locks"
-    encrypt        = true
+  backend "azurerm" {
+    resource_group_name  = "aegis-terraform-state"
+    storage_account_name = "aegisterraformstate"
+    container_name       = "tfstate"
+    key                  = "azure/terraform.tfstate"
   }
 }

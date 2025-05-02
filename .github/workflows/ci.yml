@@ -613,12 +613,23 @@ jobs:
     needs: docker
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    #environment: production
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Check for AWS credentials
+        id: check-aws-creds
+        run: |
+          if [ -z "${{ secrets.AWS_ACCESS_KEY_ID }}" ] || [ -z "${{ secrets.AWS_SECRET_ACCESS_KEY }}" ]; then
+            echo "AWS credentials not found. Skipping deployment."
+            echo "skip_deploy=true" >> $GITHUB_OUTPUT
+          else
+            echo "AWS credentials found. Proceeding with deployment."
+            echo "skip_deploy=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Configure AWS credentials
+        if: steps.check-aws-creds.outputs.skip_deploy == 'false'
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -626,90 +637,104 @@ jobs:
           aws-region: eu-central-1
 
       - name: Setup Terraform
+        if: steps.check-aws-creds.outputs.skip_deploy == 'false'
         uses: hashicorp/setup-terraform@v2
         with:
           terraform_version: 1.5.5
 
       - name: Terraform Init
+        if: steps.check-aws-creds.outputs.skip_deploy == 'false'
         run: |
           cd infra/aws
           terraform init
 
       - name: Terraform Plan
+        if: steps.check-aws-creds.outputs.skip_deploy == 'false'
         run: |
           cd infra/aws
           terraform plan -out=tfplan
 
       - name: Terraform Apply
+        if: steps.check-aws-creds.outputs.skip_deploy == 'false'
         run: |
           cd infra/aws
           terraform apply -auto-approve tfplan
 
       - name: Update deployment status
+        if: steps.check-aws-creds.outputs.skip_deploy == 'false'
         run: |
           echo "AWS deployment completed at $(date)"
           echo "Environment: Production"
           echo "Version: $(git rev-parse --short HEAD)"
+
+      - name: Deployment skipped
+        if: steps.check-aws-creds.outputs.skip_deploy == 'true'
+        run: |
+          echo "AWS deployment was skipped due to missing credentials."
+          echo "Please set AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY secrets in your repository."
 
   deploy-azure:
     name: Deploy to Azure
     needs: docker
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    #environment: production
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Check for Azure credentials
+        id: check-azure-creds
+        run: |
+          if [ -z "${{ secrets.AZURE_CREDENTIALS }}" ]; then
+            echo "Azure credentials not found. Skipping deployment."
+            echo "skip_deploy=true" >> $GITHUB_OUTPUT
+          else
+            echo "Azure credentials found. Proceeding with deployment."
+            echo "skip_deploy=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Azure login
+        if: steps.check-azure-creds.outputs.skip_deploy == 'false'
         uses: azure/login@v1
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
       - name: Setup Terraform
+        if: steps.check-azure-creds.outputs.skip_deploy == 'false'
         uses: hashicorp/setup-terraform@v2
         with:
           terraform_version: 1.5.5
 
       - name: Terraform Init
+        if: steps.check-azure-creds.outputs.skip_deploy == 'false'
         run: |
           cd infra/azure
           terraform init
 
       - name: Terraform Plan
+        if: steps.check-azure-creds.outputs.skip_deploy == 'false'
         run: |
           cd infra/azure
           terraform plan -out=tfplan
 
       - name: Terraform Apply
+        if: steps.check-azure-creds.outputs.skip_deploy == 'false'
         run: |
           cd infra/azure
           terraform apply -auto-approve tfplan
 
       - name: Update deployment status
+        if: steps.check-azure-creds.outputs.skip_deploy == 'false'
         run: |
           echo "Azure deployment completed at $(date)"
           echo "Environment: Production"
           echo "Version: $(git rev-parse --short HEAD)"
 
-  notify:
-    name: Notification
-    needs: [deploy-aws, deploy-azure]
-    if: always()
-    runs-on: ubuntu-latest
-    steps:
-      - name: Send Slack notification
-        uses: rtCamp/action-slack-notify@v2
-        env:
-          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
-          SLACK_CHANNEL: aegis-deployments
-          SLACK_TITLE: AEGIS Deployment Status
-          SLACK_MESSAGE: |
-            Deployment Status:
-            AWS: ${{ needs.deploy-aws.result }}
-            Azure: ${{ needs.deploy-azure.result }}
-            Commit: ${{ github.event.head_commit.message }}
-          SLACK_COLOR: ${{ needs.deploy-aws.result == 'success' && needs.deploy-azure.result == 'success' && 'good' || 'danger' }}
+      - name: Deployment skipped
+        if: steps.check-azure-creds.outputs.skip_deploy == 'true'
+        run: |
+          echo "Azure deployment was skipped due to missing credentials."
+          echo "Please set AZURE_CREDENTIALS secret in your repository."
 
   publish-reports:
     name: Publish Test Reports
