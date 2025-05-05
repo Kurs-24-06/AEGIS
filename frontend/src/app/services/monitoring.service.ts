@@ -1,3 +1,4 @@
+// frontend/src/app/services/monitoring.service.ts
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, of, Subject, BehaviorSubject } from 'rxjs';
@@ -64,9 +65,6 @@ export class MonitoringService {
 
   constructor(private http: HttpClient) {}
 
-  /**
-   * Start a simulation
-   */
   startSimulation(simulationId: string): Observable<SimulationStatus> {
     return this.http
       .post<SimulationStatus>(
@@ -88,9 +86,6 @@ export class MonitoringService {
       );
   }
 
-  /**
-   * Pause a simulation
-   */
   pauseSimulation(simulationId: string): Observable<SimulationStatus> {
     return this.http
       .post<SimulationStatus>(
@@ -112,9 +107,6 @@ export class MonitoringService {
       );
   }
 
-  /**
-   * Stop a simulation
-   */
   stopSimulation(simulationId: string): Observable<SimulationStatus> {
     return this.http
       .post<SimulationStatus>(
@@ -136,9 +128,6 @@ export class MonitoringService {
       );
   }
 
-  /**
-   * Get affected resources in the current simulation
-   */
   getAffectedResources(simulationId: string): Observable<AffectedResource[]> {
     return this.http
       .get<
@@ -152,9 +141,6 @@ export class MonitoringService {
       );
   }
 
-  /**
-   * Get events from the current simulation
-   */
   getSimulationEvents(
     simulationId: string,
     limit = 20,
@@ -171,9 +157,6 @@ export class MonitoringService {
       );
   }
 
-  /**
-   * Get current status of a simulation
-   */
   getSimulationStatus(simulationId: string): Observable<SimulationStatus> {
     return this.http
       .get<SimulationStatus>(
@@ -194,19 +177,12 @@ export class MonitoringService {
       );
   }
 
-  /**
-   * Connect to WebSocket for real-time updates
-   * In a real implementation, this would connect to a WebSocket
-   */
   connectToRealtimeUpdates(simulationId: string): void {
     console.log(
       `Connecting to real-time updates for simulation ${simulationId}`,
     );
 
-    // In a real implementation, this would be a WebSocket connection
-    // For now, we'll simulate updates with setTimeout
-
-    // Simulate initial status
+    // In einer echten Implementierung wäre dies eine WebSocket-Verbindung
     const initialStatus: SimulationStatus = {
       id: simulationId,
       status: 'not_started',
@@ -220,11 +196,8 @@ export class MonitoringService {
     this.affectedResourcesSubject.next([]);
   }
 
-  /**
-   * Disconnect from WebSocket
-   */
   disconnectFromRealtimeUpdates(): void {
     console.log('Disconnecting from real-time updates');
-    // In a real implementation, this would close the WebSocket connection
+    // In einer echten Implementierung würde dies die WebSocket-Verbindung schließen
   }
 }

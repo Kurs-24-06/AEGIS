@@ -1,3 +1,4 @@
+// frontend/src/app/services/infrastructure.service.ts
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
@@ -35,26 +36,16 @@ export class InfrastructureService {
 
   constructor(private http: HttpClient) {}
 
-  /**
-   * Get all infrastructure data (nodes and connections)
-   */
   getInfrastructureData(): Observable<InfrastructureData> {
-    // In a real app, this would be from the API
-    // return this.http.get<InfrastructureData>(`${this.apiUrl}/digital-twin`);
-
-    // For now, return mock data
+    // In einer echten Implementierung: return this.http.get<InfrastructureData>(`${this.apiUrl}/digital-twin`);
     return of(this.getMockInfrastructureData()).pipe(
       catchError((error) => {
         console.error('Error getting infrastructure data:', error);
-        // Return empty data in case of error
         return of({ nodes: [], connections: [] });
       }),
     );
   }
 
-  /**
-   * Import infrastructure from configuration files (Terraform, CloudFormation, etc.)
-   */
   importFromConfig(
     fileContent: string,
     fileType: string,
@@ -72,9 +63,6 @@ export class InfrastructureService {
       );
   }
 
-  /**
-   * Mock data for development
-   */
   private getMockInfrastructureData(): InfrastructureData {
     return {
       nodes: [

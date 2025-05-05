@@ -1,14 +1,7 @@
+// frontend/src/app/components/layout/layout.component.ts
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, RouterOutlet } from '@angular/router';
-
-interface NavItem {
-  path: string;
-  icon: string;
-  label: string;
-  hasSubMenu?: boolean;
-  expanded?: boolean;
-}
 
 @Component({
   selector: 'app-layout',
@@ -27,7 +20,7 @@ interface NavItem {
         <nav class="sidebar-nav">
           <ul>
             <li *ngFor="let item of navItems">
-              <a
+
                 [routerLink]="item.path"
                 routerLinkActive="active"
                 [routerLinkActiveOptions]="{ exact: item.path === '/' }"
@@ -35,13 +28,6 @@ interface NavItem {
               >
                 <i class="bi" [ngClass]="item.icon"></i>
                 <span>{{ item.label }}</span>
-                <i
-                  *ngIf="item.hasSubMenu"
-                  class="bi"
-                  [ngClass]="
-                    item.expanded ? 'bi-chevron-up' : 'bi-chevron-down'
-                  "
-                ></i>
               </a>
             </li>
           </ul>
@@ -122,12 +108,6 @@ interface NavItem {
         margin-right: 12px;
       }
 
-      .nav-item i:last-child {
-        margin-right: 0;
-        margin-left: auto;
-        font-size: 14px;
-      }
-
       .nav-item:hover {
         background-color: #262626;
         color: #e4e6eb;
@@ -152,8 +132,7 @@ interface NavItem {
         }
 
         .sidebar .logo span,
-        .sidebar .nav-item span,
-        .sidebar .nav-item i:last-child {
+        .sidebar .nav-item span {
           display: none;
         }
 
@@ -174,7 +153,7 @@ interface NavItem {
   ],
 })
 export class LayoutComponent {
-  navItems: NavItem[] = [
+  navItems = [
     {
       path: '/',
       icon: 'bi-grid-1x2-fill',
@@ -184,15 +163,11 @@ export class LayoutComponent {
       path: '/infrastruktur',
       icon: 'bi-hdd-rack-fill',
       label: 'Infrastruktur',
-      hasSubMenu: true,
-      expanded: false,
     },
     {
       path: '/simulationen',
       icon: 'bi-activity',
       label: 'Simulationen',
-      hasSubMenu: true,
-      expanded: false,
     },
     {
       path: '/monitoring',

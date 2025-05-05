@@ -1,0 +1,44 @@
+version: '3.8'
+
+# AEGIS Development Docker Compose Configuration
+services:
+  # PostgreSQL with TimescaleDB for development
+  postgres:
+    image: timescale/timescaledb:latest-pg14
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=aegisuser
+      - POSTGRES_PASSWORD=dev-password
+      - POSTGRES_DB=aegis_dev
+      - TIMESCALEDB_TELEMETRY=off
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+      - ./backend/db/migrations:/docker-entrypoint-initdb.d
+    networks:
+      - aegis-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aegisuser -d aegis_dev"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Redis for caching and pub/sub
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - ./data/redis:/data
+    networks:
+      - aegis-network
+    restart: unless-stopped
+
+networks:
+  aegis-network:
+    driver: bridge
+
+volumes:
+  backend-data:
