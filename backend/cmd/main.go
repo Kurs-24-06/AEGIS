@@ -37,51 +37,55 @@ func main() {
 	if err != nil {
 		logging.Logger.Warnf("Could not initialize tracer: %v", err)
 	} else {
-		defer closer.Close()
+		defer func() {
+			if err := closer.Close(); err != nil {
+				logging.Logger.Errorf("Error closing tracer: %v", err)
+			}
+		}()
 	}
 
 	// Server configuration
 	addr := fmt.Sprintf(":%d", cfg.Server.Port)
-	
+
 	// CORS configuration
-	corsHandler := setupCORS(cfg.Server.CORS.AllowedOrigins, 
-	                        cfg.Server.CORS.AllowedMethods, 
-	                        cfg.Server.CORS.AllowedHeaders)
+	corsHandler := setupCORS(cfg.Server.CORS.AllowedOrigins,
+		cfg.Server.CORS.AllowedMethods,
+		cfg.Server.CORS.AllowedHeaders)
 
 	// Set up metrics
 	metricsHandler := metrics.MetricsHandler()
 	metrics.SetVersion(version)
-	
+
 	// Initialize API router
 	apiRouter := api.NewAPIRouter()
-	
+
 	// Set up main router
 	router := http.NewServeMux()
-	
+
 	// Health check endpoint (outside API path)
 	router.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(`{"status":"healthy"}`))
 	})
-	
+
 	// Version endpoint (outside API path)
 	router.HandleFunc("/version", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(fmt.Sprintf(`{"version":"%s"}`, version)))
 	})
-	
+
 	// Metrics endpoint
 	router.Handle("/metrics", metricsHandler)
-	
+
 	// API router
 	router.Handle("/api/", http.StripPrefix("/api", apiRouter.Handler()))
 
 	// Start server
 	logging.Logger.Infof("Server starting on %s in %s mode", addr, getEnvironmentName())
 	logging.Logger.Infof("Version: %s", version)
-	
+
 	if err := http.ListenAndServe(addr, corsHandler(router)); err != nil {
 		logging.Logger.Fatalf("Error starting server: %v", err)
 	}
@@ -96,7 +100,7 @@ func setupCORS(allowedOrigins, allowedMethods, allowedHeaders []string) func(htt
 		AllowCredentials: true,
 		Debug:            getEnvironmentName() == "development",
 	})
-	
+
 	return c.Handler
 }
 

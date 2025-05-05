@@ -559,3 +559,151 @@ interface Filters {
     .actions .btn {
       flex: 1;
     }
+  `]
+})
+export class InfrastructureComponent implements OnInit, AfterViewInit, OnDestroy {
+  @ViewChild('graphContainer', { static: true }) graphContainer!: ElementRef<HTMLDivElement>;
+
+  selectedLayout: string = 'force';
+  searchTerm: string = '';
+  filters: Filters = {
+    showNormal: true,
+    showWarning: true,
+    showCritical: true,
+    showRouters: true,
+    showServers: true,
+    showWorkstations: true,
+  };
+  infrastructureData: InfrastructureData | null = null;
+  filteredNodes: InfrastructureNode[] = [];
+  selectedNode: InfrastructureNode | null = null;
+  private subscriptions: Subscription[] = [];
+
+  constructor(private infrastructureService: InfrastructureService) {}
+
+  ngOnInit(): void {
+    this.subscriptions.push(
+      this.infrastructureService.getInfrastructureData().subscribe((data) => {
+        this.infrastructureData = data;
+        this.applyFilters();
+      })
+    );
+  }
+
+  ngAfterViewInit(): void {
+    this.renderGraph();
+  }
+
+  ngOnDestroy(): void {
+    this.subscriptions.forEach((sub) => sub.unsubscribe());
+  }
+
+  zoomIn(): void {
+    // Implementation for zooming in
+  }
+
+  zoomOut(): void {
+    // Implementation for zooming out
+  }
+
+  resetZoom(): void {
+    // Implementation for resetting zoom
+  }
+
+  changeLayout(): void {
+    // Implementation for changing layout
+  }
+
+  onSearch(): void {
+    this.applyFilters();
+  }
+
+  toggleFilter(filterName: keyof Filters): void {
+    this.filters[filterName] = !this.filters[filterName];
+    this.applyFilters();
+  }
+
+  applyFilters(): void {
+    if (!this.infrastructureData) {
+      this.filteredNodes = [];
+      return;
+    }
+    this.filteredNodes = this.infrastructureData.nodes.filter((node) => {
+      const statusMatch =
+        (node.status === 'normal' && this.filters.showNormal) ||
+        (node.status === 'warning' && this.filters.showWarning) ||
+        (node.status === 'critical' && this.filters.showCritical);
+      const typeMatch =
+        (node.type === 'router' && this.filters.showRouters) ||
+        (node.type === 'server' && this.filters.showServers) ||
+        (node.type === 'workstation' && this.filters.showWorkstations);
+      const searchMatch = node.name.toLowerCase().includes(this.searchTerm.toLowerCase());
+      return statusMatch && typeMatch && searchMatch;
+    });
+  }
+
+  selectNode(node: InfrastructureNode): void {
+    this.selectedNode = node;
+  }
+
+  getNodeIcon(type: string): string {
+    switch (type) {
+      case 'router':
+        return 'bi-hdd-network';
+      case 'server':
+        return 'bi-server';
+      case 'workstation':
+        return 'bi-pc-display';
+      default:
+        return 'bi-question-circle';
+    }
+  }
+
+  getNodeTypeLabel(type: string): string {
+    switch (type) {
+      case 'router':
+        return 'Router';
+      case 'server':
+        return 'Server';
+      case 'workstation':
+        return 'Workstation';
+      default:
+        return 'Unbekannt';
+    }
+  }
+
+  getStatusLabel(status: string): string {
+    switch (status) {
+      case 'normal':
+        return 'Normal';
+      case 'warning':
+        return 'Warnung';
+      case 'critical':
+        return 'Kritisch';
+      default:
+        return 'Unbekannt';
+    }
+  }
+
+  getNodeConnections(nodeId: string): Connection[] {
+    if (!this.infrastructureData) {
+      return [];
+    }
+    return this.infrastructureData.connections.filter(
+      (conn) => conn.source === nodeId || conn.target === nodeId
+    );
+  }
+
+  getNodeName(nodeId: string): string {
+    if (!this.infrastructureData) {
+      return '';
+    }
+    const node = this.infrastructureData.nodes.find((n) => n.id === nodeId);
+    return node ? node.name : '';
+  }
+
+  renderGraph(): void {
+    // Implementation for rendering the graph using d3
+  }
+}
+`

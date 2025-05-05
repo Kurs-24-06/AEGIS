@@ -1,5 +1,5 @@
 #!/bin/bash
-# db-init.sh - Initialize and migrate the database for AEGIS
+# setup-dev.sh - Initialize and migrate the database for AEGIS
 
 set -e
 

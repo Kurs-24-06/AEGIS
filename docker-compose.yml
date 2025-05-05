@@ -1,7 +1,7 @@
-version: '3.8'
+version: "3.8"
 
-# AEGIS Docker Compose Konfiguration mit umgebungsspezifischen Einstellungen
-# Unterstützt Entwicklung (dev), Staging und Produktion (prod)
+# AEGIS Docker Compose Configuration with environment-specific settings
+# Supports development (dev), staging and production (prod)
 
 services:
   # Frontend service
@@ -15,9 +15,7 @@ services:
     image: ${DOCKER_REPO:-aegis}/aegis-frontend:${VERSION:-latest}
     ports:
       - "${FRONTEND_PORT:-4200}:80"
-    volumes:
-      - ${ENV:-dev} == "dev" ? ./frontend:/app : []
-      - ${ENV:-dev} == "dev" ? /app/node_modules : []
+    volumes: []
     environment:
       - NODE_ENV=${ENV:-development}
     depends_on:
@@ -38,7 +36,7 @@ services:
         reservations:
           memory: ${FRONTEND_MEMORY_RESERVATION:-256M}
 
-  # Backend service  
+  # Backend service
   backend:
     build:
       context: ./backend
@@ -52,32 +50,30 @@ services:
     ports:
       - "${BACKEND_PORT:-8080}:8080"
     volumes:
-      - ${ENV:-dev} == "dev" ? ./backend:/app : []
-      - ${ENV:-dev} == "dev" ? /app/go/pkg/mod : []
       - backend-data:/app/data
       - backend-logs:/app/logs
     environment:
       - ENVIRONMENT=${ENV:-development}
-      # Datenbankeinstellungen
+      # Database settings
       - DB_HOST=${DB_HOST:-postgres}
       - DB_PORT=${DB_PORT:-5432}
       - DB_USER=${DB_USER:-aegisuser}
-      - DB_PASSWORD=${DB_PASSWORD:-${ENV:-dev}_password}
-      - DB_NAME=${DB_NAME:-aegis_${ENV:-dev}}
-      # Redis-Einstellungen
+      - DB_PASSWORD=${DB_PASSWORD:-dev_password}
+      - DB_NAME=${DB_NAME:-aegis_dev}
+      # Redis settings
       - REDIS_HOST=${REDIS_HOST:-redis}
       - REDIS_PORT=${REDIS_PORT:-6379}
       - REDIS_PASSWORD=${REDIS_PASSWORD:-}
-      # Sicherheitseinstellungen
-      - JWT_SECRET=${JWT_SECRET:-${ENV:-dev}_jwt_secret}
+      # Security settings
+      - JWT_SECRET=${JWT_SECRET:-dev_jwt_secret}
       - TOKEN_EXPIRY=${TOKEN_EXPIRY:-24h}
-      # Logging-Einstellungen
+      # Logging settings
       - LOG_LEVEL=${LOG_LEVEL:-info}
-      - LOG_FORMAT=${LOG_FORMAT:-${ENV:-dev} == "dev" ? "text" : "json"}
-      # Simulations-Einstellungen
-      - SIMULATION_WORKERS=${SIMULATION_WORKERS:-${ENV:-dev} == "prod" ? 8 : ${ENV:-dev} == "staging" ? 4 : 2}
-      - SIMULATION_BUFFER=${SIMULATION_BUFFER:-${ENV:-dev} == "prod" ? 10000 : ${ENV:-dev} == "staging" ? 5000 : 1000}
-      - SIMULATION_TIMEOUT=${SIMULATION_TIMEOUT:-${ENV:-dev} == "prod" ? 900 : ${ENV:-dev} == "staging" ? 600 : 300}
+      - LOG_FORMAT=${LOG_FORMAT:-text}
+      # Simulation settings
+      - SIMULATION_WORKERS=${SIMULATION_WORKERS:-2}
+      - SIMULATION_BUFFER=${SIMULATION_BUFFER:-1000}
+      - SIMULATION_TIMEOUT=${SIMULATION_TIMEOUT:-300}
     depends_on:
       - postgres
       - redis
@@ -93,8 +89,8 @@ services:
     deploy:
       resources:
         limits:
-          cpus: ${BACKEND_CPU_LIMIT:-${ENV:-dev} == "prod" ? "1.0" : "0.5"}
-          memory: ${BACKEND_MEMORY_LIMIT:-${ENV:-dev} == "prod" ? "1G" : "512M"}
+          cpus: ${BACKEND_CPU_LIMIT:-0.5}
+          memory: ${BACKEND_MEMORY_LIMIT:-512M}
         reservations:
           memory: ${BACKEND_MEMORY_RESERVATION:-256M}
 
@@ -105,8 +101,8 @@ services:
       - "${POSTGRES_PORT:-5432}:5432"
     environment:
       - POSTGRES_USER=${DB_USER:-aegisuser}
-      - POSTGRES_PASSWORD=${DB_PASSWORD:-${ENV:-dev}_password}
-      - POSTGRES_DB=${DB_NAME:-aegis_${ENV:-dev}}
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-dev_password}
+      - POSTGRES_DB=${DB_NAME:-aegis_dev}
       - TIMESCALEDB_TELEMETRY=off
     volumes:
       - postgres-data:/var/lib/postgresql/data
@@ -114,7 +110,11 @@ services:
     networks:
       - aegis-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-aegisuser} -d ${DB_NAME:-aegis_${ENV:-dev}}"]
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${DB_USER:-aegisuser} -d ${DB_NAME:-aegis_dev}",
+        ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -123,7 +123,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: ${POSTGRES_MEMORY_LIMIT:-${ENV:-dev} == "prod" ? "2G" : "1G"}
+          memory: ${POSTGRES_MEMORY_LIMIT:-1G}
 
   # Redis for caching and pub/sub
   redis:
@@ -134,7 +134,7 @@ services:
       redis-server 
       --appendonly yes
       --requirepass ${REDIS_PASSWORD:-}
-      --maxmemory ${REDIS_MAXMEMORY:-${ENV:-dev} == "prod" ? "1gb" : "256mb"}
+      --maxmemory ${REDIS_MAXMEMORY:-256mb}
       --maxmemory-policy ${REDIS_MAXMEMORY_POLICY:-allkeys-lru}
     volumes:
       - redis-data:/data
@@ -149,7 +149,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: ${REDIS_MEMORY_LIMIT:-${ENV:-dev} == "prod" ? "1.5G" : "512M"}
+          memory: ${REDIS_MEMORY_LIMIT:-512M}
 
   # Prometheus for metrics
   prometheus:
@@ -160,19 +160,19 @@ services:
       - ./infra/prometheus/${ENV:-dev}/prometheus.yml:/etc/prometheus/prometheus.yml
       - prometheus-data:/prometheus
     command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-      - '--web.console.libraries=/etc/prometheus/console_libraries'
-      - '--web.console.templates=/etc/prometheus/consoles'
-      - '--web.enable-lifecycle'
-      - '--storage.tsdb.retention.time=${PROMETHEUS_RETENTION:-${ENV:-dev} == "prod" ? "15d" : "5d"}'
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--web.console.libraries=/etc/prometheus/console_libraries"
+      - "--web.console.templates=/etc/prometheus/consoles"
+      - "--web.enable-lifecycle"
+      - "--storage.tsdb.retention.time=${PROMETHEUS_RETENTION:-5d}"
     networks:
       - aegis-network
     restart: unless-stopped
     deploy:
       resources:
         limits:
-          memory: ${PROMETHEUS_MEMORY_LIMIT:-${ENV:-dev} == "prod" ? "1G" : "512M"}
+          memory: ${PROMETHEUS_MEMORY_LIMIT:-512M}
 
   # Grafana for visualization
   grafana:
@@ -181,9 +181,9 @@ services:
       - "${GRAFANA_PORT:-3000}:3000"
     environment:
       - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
-      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-${ENV:-dev} == "prod" ? "${GRAFANA_ADMIN_SECRET}" : "admin"}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
       - GF_USERS_ALLOW_SIGN_UP=false
-      - GF_SERVER_ROOT_URL=${GRAFANA_ROOT_URL:-${ENV:-dev} == "prod" ? "https://grafana.aegis-security.com" : "http://localhost:3000"}
+      - GF_SERVER_ROOT_URL=${GRAFANA_ROOT_URL:-http://localhost:3000}
       - GF_INSTALL_PLUGINS=${GRAFANA_PLUGINS:-grafana-clock-panel,grafana-worldmap-panel}
     volumes:
       - ./infra/grafana/${ENV:-dev}/provisioning:/etc/grafana/provisioning
@@ -208,7 +208,7 @@ services:
       - minio-data:/data
     environment:
       - MINIO_ROOT_USER=${MINIO_ROOT_USER:-minioadmin}
-      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD:-${ENV:-dev} == "prod" ? "${MINIO_ROOT_SECRET}" : "minioadmin"}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD:-minioadmin}
       - MINIO_BROWSER=${MINIO_BROWSER:-on}
       - MINIO_PROMETHEUS_AUTH_TYPE=public
     command: server /data --console-address ":9001"
@@ -223,13 +223,13 @@ services:
     deploy:
       resources:
         limits:
-          memory: ${MINIO_MEMORY_LIMIT:-${ENV:-dev} == "prod" ? "1G" : "512M"}
+          memory: ${MINIO_MEMORY_LIMIT:-512M}
 
-  # Für die Produktionsumgebung: Zusätzlicher Traefik Reverse Proxy hinzufügen
+  # Traefik Reverse Proxy for production environment
   traefik:
     image: traefik:v2.9
     command:
-      - "--api.insecure=${TRAEFIK_API_INSECURE:-${ENV:-dev} == "prod" ? "false" : "true"}"
+      - "--api.insecure=${TRAEFIK_API_INSECURE:-true}"
       - "--providers.docker=true"
       - "--providers.docker.exposedbydefault=false"
       - "--entrypoints.web.address=:80"
@@ -241,7 +241,7 @@ services:
     ports:
       - "80:80"
       - "443:443"
-      - "${TRAEFIK_DASHBOARD_PORT:-${ENV:-dev} == "prod" ? "8888" : "8080"}:8080"
+      - "${TRAEFIK_DASHBOARD_PORT:-8080}:8080"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - traefik-data:/letsencrypt

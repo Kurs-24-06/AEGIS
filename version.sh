@@ -1,27 +1,21 @@
 #!/bin/bash
-# version.sh - Generate and manage version information for AEGIS
+# AEGIS - Enhanced Versioning Script
+# Provides consistent versioning across all project components
 
 set -e
 
-# Detect if we're in a git repository
-if [ ! -d ".git" ]; then
-  echo "Error: Not in a git repository root" >&2
-  exit 1
-fi
+# Detect working directory
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT_DIR="$SCRIPT_DIR"
 
-# Get the most recent tag
+# Default action
+ACTION=${1:-show}
+
+# Get the current git tag, commit hash, and check for dirty state
 LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
-
-# Parse the version components
-MAJOR=$(echo $LATEST_TAG | sed 's/v\([0-9]*\)\..*/\1/')
-MINOR=$(echo $LATEST_TAG | sed 's/v[0-9]*\.\([0-9]*\)\..*/\1/')
-PATCH=$(echo $LATEST_TAG | sed 's/v[0-9]*\.[0-9]*\.\([0-9]*\).*/\1/')
-
-# Get the commit count since the last tag
 COMMIT_COUNT=$(git rev-list --count ${LATEST_TAG}..HEAD)
-
-# Get the short git hash
-GIT_HASH=$(git rev-parse --short HEAD)
+COMMIT_HASH=$(git rev-parse --short HEAD)
+BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
 # Check if working directory is dirty
 if ! git diff --quiet; then
@@ -30,18 +24,28 @@ else
   DIRTY=""
 fi
 
-# Default action is to show the current version
-ACTION=${1:-show}
+# Calculate version components
+MAJOR=$(echo $LATEST_TAG | sed 's/v\([0-9]*\)\..*/\1/')
+MINOR=$(echo $LATEST_TAG | sed 's/v[0-9]*\.\([0-9]*\)\..*/\1/')
+PATCH=$(echo $LATEST_TAG | sed 's/v[0-9]*\.[0-9]*\.\([0-9]*\).*/\1/')
+
+# Format full version string
+if [ "$COMMIT_COUNT" -gt "0" ]; then
+  FULL_VERSION="${LATEST_TAG}-${COMMIT_COUNT}-g${COMMIT_HASH}${DIRTY}"
+else
+  FULL_VERSION="${LATEST_TAG}${DIRTY}"
+fi
+
+# Strip the 'v' prefix for some uses
+VERSION_NO_V=$(echo $FULL_VERSION | sed 's/^v//')
 
 case $ACTION in
   show)
-    # If we have commits since the last tag, include them in the version
-    if [ "$COMMIT_COUNT" -gt "0" ]; then
-      FULL_VERSION="${LATEST_TAG}-${COMMIT_COUNT}-g${GIT_HASH}${DIRTY}"
-    else
-      FULL_VERSION="${LATEST_TAG}${DIRTY}"
-    fi
     echo $FULL_VERSION
+    ;;
+
+  json)
+    echo "{\"version\":\"$VERSION_NO_V\",\"buildDate\":\"$BUILD_DATE\",\"gitCommit\":\"$COMMIT_HASH\",\"dirty\":${DIRTY:+true}${DIRTY:-false}}"
     ;;
 
   major)
@@ -69,20 +73,17 @@ case $ACTION in
     ;;
 
   apply)
-    # Apply version information to project files
-    echo "Applying version information..."
-    
-    # Strip leading 'v' if present
-    VERSION=$(echo $FULL_VERSION | sed 's/^v//')
-    BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+    # Apply version information to all project components
+    echo "Applying version information across project..."
     
     # Frontend version file
     mkdir -p frontend/src/assets
     cat > frontend/src/assets/version.json << EOF
 {
-  "version": "$VERSION",
+  "version": "$VERSION_NO_V",
   "buildTimestamp": "$BUILD_DATE",
-  "gitCommit": "$GIT_HASH"
+  "gitCommit": "$COMMIT_HASH",
+  "dirty": ${DIRTY:+true}${DIRTY:-false}
 }
 EOF
     echo "- Updated frontend/src/assets/version.json"
@@ -95,28 +96,60 @@ package config
 // Auto-generated version information
 const (
 	// Version is the current application version
-	Version = "$VERSION"
+	Version = "$VERSION_NO_V"
 	
 	// BuildTimestamp is the time the build was created
 	BuildTimestamp = "$BUILD_DATE"
 	
 	// GitCommit is the git commit hash
-	GitCommit = "$GIT_HASH"
+	GitCommit = "$COMMIT_HASH"
+	
+	// IsDirty indicates if the build was created with uncommitted changes
+	IsDirty = ${DIRTY:+true}${DIRTY:-false}
 )
 EOF
     echo "- Updated backend/internal/config/version.go"
     
-    echo "Version information applied successfully."
+    # Update package.json version (frontend)
+    if [ -f frontend/package.json ]; then
+      # Use temporary file to avoid issues with some sed implementations
+      sed "s/\"version\": \".*\"/\"version\": \"$VERSION_NO_V\"/" frontend/package.json > frontend/package.json.tmp
+      mv frontend/package.json.tmp frontend/package.json
+      echo "- Updated version in frontend/package.json"
+    fi
+    
+    # Create version file at project root
+    echo "$FULL_VERSION" > "$ROOT_DIR/VERSION"
+    echo "- Created VERSION file at project root"
+    
+    echo "Version information applied successfully: $FULL_VERSION"
+    ;;
+
+  info)
+    # Display detailed version information
+    echo "AEGIS Version Information:"
+    echo "-------------------------"
+    echo "Version:      $FULL_VERSION"
+    echo "Major:        $MAJOR"
+    echo "Minor:        $MINOR"
+    echo "Patch:        $PATCH"
+    echo "Commit Hash:  $COMMIT_HASH"
+    echo "Commit Count: $COMMIT_COUNT (since $LATEST_TAG)"
+    echo "Build Date:   $BUILD_DATE"
+    echo "Dirty:        ${DIRTY:+Yes}${DIRTY:-No}"
+    echo "-------------------------"
     ;;
 
   *)
-    echo "Usage: $0 [show|major|minor|patch|apply]"
+    echo "Usage: $0 [show|json|major|minor|patch|apply|info]"
     echo ""
     echo "  show   - Display current version (default)"
+    echo "  json   - Output version info as JSON"
     echo "  major  - Increment major version"
-    echo "  minor  - Increment minor version"
+    echo "  minor  - Increment minor version" 
     echo "  patch  - Increment patch version"
     echo "  apply  - Apply version information to project files"
+    echo "  info   - Display detailed version information"
     exit 1
     ;;
 esac

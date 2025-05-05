@@ -1,7 +1,38 @@
-version: '3.8'
+version: "3.8"
 
 # AEGIS Development Docker Compose Configuration
 services:
+  # Frontend service overrides for development
+  frontend:
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+
+  # Backend service overrides for development
+  backend:
+    volumes:
+      - ./backend:/app
+      - /app/go/pkg/mod
+      - backend-data:/app/data
+      - backend-logs:/app/logs
+    environment:
+      - ENVIRONMENT=development
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=aegisuser
+      - DB_PASSWORD=dev_password
+      - DB_NAME=aegis_dev
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=
+      - JWT_SECRET=dev_jwt_secret
+      - TOKEN_EXPIRY=24h
+      - LOG_LEVEL=info
+      - LOG_FORMAT=text
+      - SIMULATION_WORKERS=2
+      - SIMULATION_BUFFER=1000
+      - SIMULATION_TIMEOUT=300
+
   # PostgreSQL with TimescaleDB for development
   postgres:
     image: timescale/timescaledb:latest-pg14
@@ -42,3 +73,4 @@ networks:
 
 volumes:
   backend-data:
+  backend-logs:

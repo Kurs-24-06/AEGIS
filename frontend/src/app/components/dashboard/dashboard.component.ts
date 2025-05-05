@@ -503,7 +503,9 @@ export class DashboardComponent implements OnInit {
   quickActions: QuickAction[] = [];
   recentActivity: RecentActivity[] = [];
 
-  constructor() {}
+  constructor() {
+    // This empty constructor is intentionally kept for DI to work properly
+  }
 
   ngOnInit(): void {
     // Initialize mock data
