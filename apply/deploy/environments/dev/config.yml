@@ -1,0 +1,34 @@
+# Generated for dev environment - Mon, May  5, 2025 11:14:33 AM
+environment: dev
+domain: dev.aegis-security.com
+replicas:
+  frontend: 1
+  backend: 2
+resources:
+  frontend:
+    cpu: "0.5"
+    memory: "512Mi"
+  backend:
+    cpu: "0.5"
+    memory: "512Mi"
+  database:
+    storage: "10Gi"
+    cpu: "1"
+    memory: "1Gi"
+features:
+  experimental: true
+  debugMode: true
+  metrics: true
+logging:
+  level: "debug"
+  retention: "7d"
+database:
+  backupSchedule: "0 0 * * *"
+  backupRetention: "7d"
+monitoring:
+  alerting: false
+  alertReceivers:
+  dashboards:
+    - name: "overview"
+    - name: "performance"
+    - name: "security"

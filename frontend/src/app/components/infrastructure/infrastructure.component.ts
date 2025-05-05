@@ -116,6 +116,9 @@ interface Filters {
                 class="node-item"
                 [ngClass]="node.status"
                 (click)="selectNode(node)"
+                tabindex="0"
+                (keydown.enter)="selectNode(node)"
+                (keydown.space)="selectNode(node)"
                 [class.selected]="selectedNode?.id === node.id"
               >
                 <i class="bi" [ngClass]="getNodeIcon(node.type)"></i>

@@ -1,0 +1,36 @@
+# Generated for dev environment - Mon, May  5, 2025 11:14:33 AM
+server:
+  port: 8080
+  debug: true
+  cors:
+    allowed_origins: ["http://localhost:4200"]
+    allowed_methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+    allowed_headers: ["Authorization", "Content-Type"]
+
+database:
+  type: "postgres"
+  host: "localhost"
+  port: 5432
+  user: "aegisuser"
+  password: "dev-password"
+  name: "aegis_dev"
+  sslMode: "disable"
+
+redis:
+  host: "localhost"
+  port: 6379
+  password: ""
+
+simulation:
+  worker_count: 2
+  buffer_size: 1000
+  default_timeout_seconds: 300
+
+logging:
+  level: "debug"
+  format: "text"
+
+auth:
+  enabled: true
+  jwt_secret: "dev-jwt-secret-change-me"
+  token_expiry: "24h"
