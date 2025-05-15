@@ -283,6 +283,8 @@ import { AuthService } from '../../services/auth.service';
     `,
   ],
 })
+import { Subscription } from 'rxjs';
+
 export class LoginComponent implements OnInit {
   loginForm!: FormGroup;
   loading = false;
@@ -290,6 +292,7 @@ export class LoginComponent implements OnInit {
   error = '';
   showPassword = false;
   returnUrl = '/';
+  private authSubscription?: Subscription;
 
   constructor(
     private formBuilder: FormBuilder,
@@ -309,7 +312,7 @@ export class LoginComponent implements OnInit {
     this.returnUrl = this.route.snapshot.queryParams['returnUrl'] || '/';
 
     // Check if already logged in
-    this.authService.isAuthenticated$.subscribe(isAuthenticated => {
+    this.authSubscription = this.authService.isAuthenticated$.subscribe(isAuthenticated => {
       if (isAuthenticated) {
         this.router.navigate([this.returnUrl]);
       }
@@ -345,5 +348,9 @@ export class LoginComponent implements OnInit {
 
   togglePasswordVisibility(): void {
     this.showPassword = !this.showPassword;
+  }
+
+  ngOnDestroy(): void {
+    this.authSubscription?.unsubscribe();
   }
 }

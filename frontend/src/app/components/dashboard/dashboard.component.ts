@@ -1,27 +1,25 @@
-// frontend/src/app/components/dashboard/dashboard.component.ts
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 
-interface SystemStatus {
-  component: string;
-  status: 'normal' | 'warning' | 'critical';
-  message: string;
-}
-
-interface QuickAction {
+interface DashboardCard {
+  title: string;
+  description: string;
   icon: string;
-  label: string;
-  description: string;
-  route: string;
+  routerLink: string;
+  status?: 'normal' | 'warning' | 'critical';
+  count?: number;
 }
 
-interface RecentActivity {
-  id: string;
-  type: string;
-  description: string;
-  timestamp: string;
-  status: 'info' | 'success' | 'warning' | 'danger';
+interface MetricCard {
+  title: string;
+  value: string | number;
+  icon: string;
+  change?: {
+    value: number;
+    isPositive: boolean;
+  };
+  status?: 'normal' | 'warning' | 'critical';
 }
 
 @Component({
@@ -30,156 +28,141 @@ interface RecentActivity {
   imports: [CommonModule, RouterModule],
   template: `
     <div class="dashboard-container">
-      <div class="dashboard-header">
-        <h1>
-          <i class="bi bi-speedometer2"></i>
-          AEGIS Dashboard
-        </h1>
-        <p class="dashboard-subtitle">Security Simulation Platform</p>
+      <header class="dashboard-header">
+        <h1>Übersicht</h1>
+        <div class="header-actions">
+          <button class="refresh-button">
+            <i class="bi bi-arrow-clockwise"></i>
+            Aktualisieren
+          </button>
+          <div class="date-selector">
+            <i class="bi bi-calendar3"></i>
+            <span>Letzte 30 Tage</span>
+            <i class="bi bi-chevron-down"></i>
+          </div>
+        </div>
+      </header>
+
+      <div class="metrics-row">
+        <div
+          *ngFor="let metric of metrics"
+          class="metric-card"
+          [ngClass]="{
+            'status-warning': metric.status === 'warning',
+            'status-critical': metric.status === 'critical',
+          }"
+        >
+          <div class="metric-icon">
+            <i class="bi" [ngClass]="metric.icon"></i>
+          </div>
+          <div class="metric-content">
+            <h3>{{ metric.title }}</h3>
+            <div class="metric-value">{{ metric.value }}</div>
+            <div class="metric-change" *ngIf="metric.change">
+              <i
+                class="bi"
+                [ngClass]="{
+                  'bi-arrow-up-short': metric.change.isPositive,
+                  'bi-arrow-down-short': !metric.change.isPositive,
+                }"
+              ></i>
+              <span
+                [ngClass]="{
+                  positive: metric.change.isPositive,
+                  negative: !metric.change.isPositive,
+                }"
+              >
+                {{ metric.change.value }}%
+              </span>
+              <span class="period">vs. Vormonat</span>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <div class="dashboard-grid">
-        <!-- System Status -->
-        <div class="dashboard-card status-card">
+      <div class="cards-container">
+        <div
+          *ngFor="let card of cards"
+          class="dashboard-card"
+          [ngClass]="{
+            'status-warning': card.status === 'warning',
+            'status-critical': card.status === 'critical',
+          }"
+          [routerLink]="card.routerLink"
+        >
           <div class="card-header">
-            <h2>
-              <i class="bi bi-activity"></i>
-              System Status
-            </h2>
-          </div>
-          <div class="card-content">
-            <div *ngFor="let status of systemStatus" class="status-item">
-              <div class="status-item-header">
-                <span class="status-label">{{ status.component }}</span>
-                <span
-                  class="status-indicator"
-                  [ngClass]="'status-' + status.status"
-                >
-                  <i
-                    class="bi"
-                    [ngClass]="
-                      status.status === 'normal'
-                        ? 'bi-check-circle-fill'
-                        : status.status === 'warning'
-                        ? 'bi-exclamation-triangle-fill'
-                        : 'bi-x-circle-fill'
-                    "
-                  ></i>
-                  {{ status.status | titlecase }}
-                </span>
-              </div>
-              <p class="status-message">{{ status.message }}</p>
+            <div class="card-icon">
+              <i class="bi" [ngClass]="card.icon"></i>
+            </div>
+            <div class="card-count" *ngIf="card.count !== undefined">
+              {{ card.count }}
             </div>
           </div>
-        </div>
-
-        <!-- Quick Actions -->
-        <div class="dashboard-card quick-actions-card">
-          <div class="card-header">
-            <h2>
-              <i class="bi bi-lightning-charge"></i>
-              Quick Actions
-            </h2>
-          </div>
           <div class="card-content">
-            <div class="quick-actions-grid">
-
-                *ngFor="let action of quickActions"
-                [routerLink]="action.route"
-                class="quick-action-item"
-              >
-                <div class="quick-action-icon">
-                  <i class="bi" [ngClass]="action.icon"></i>
-                </div>
-                <div class="quick-action-content">
-                  <h3>{{ action.label }}</h3>
-                  <p>{{ action.description }}</p>
-                </div>
-              </a>
-            </div>
-          </div>
-        </div>
-
-        <!-- Recent Activity -->
-        <div class="dashboard-card activity-card">
-          <div class="card-header">
-            <h2>
-              <i class="bi bi-clock-history"></i>
-              Recent Activity
-            </h2>
-          </div>
-          <div class="card-content">
-            <div *ngFor="let activity of recentActivity" class="activity-item">
-              <div class="activity-icon" [ngClass]="'activity-' + activity.status">
-                <i
-                  class="bi"
-                  [ngClass]="
-                    activity.type === 'simulation'
-                      ? 'bi-play-circle'
-                      : activity.type === 'infrastructure'
-                      ? 'bi-hdd-rack'
-                      : activity.type === 'report'
-                      ? 'bi-file-earmark-text'
-                      : 'bi-gear'
-                  "
-                ></i>
-              </div>
-              <div class="activity-content">
-                <div class="activity-header">
-                  <span class="activity-description">{{ activity.description }}</span>
-                  <span class="activity-time">{{ formatTime(activity.timestamp) }}</span>
-                </div>
-                <div class="activity-status" [ngClass]="'status-' + activity.status">
-                  <i
-                    class="bi"
-                    [ngClass]="
-                      activity.status === 'info'
-                        ? 'bi-info-circle'
-                        : activity.status === 'success'
-                        ? 'bi-check-circle'
-                        : activity.status === 'warning'
-                        ? 'bi-exclamation-triangle'
-                        : 'bi-x-circle'
-                    "
-                  ></i>
-                  {{ activity.status | titlecase }}
-                </div>
-              </div>
-            </div>
+            <h3>{{ card.title }}</h3>
+            <p>{{ card.description }}</p>
           </div>
           <div class="card-footer">
-            <a routerLink="/activity" class="view-all-link">
-              View All Activity
-              <i class="bi bi-arrow-right"></i>
-            </a>
+            <span>Details anzeigen</span>
+            <i class="bi bi-arrow-right"></i>
           </div>
         </div>
+      </div>
 
-        <!-- Statistics Summary -->
-        <div class="dashboard-card stats-card">
-          <div class="card-header">
-            <h2>
-              <i class="bi bi-bar-chart"></i>
-              Statistics
-            </h2>
+      <div class="activity-section">
+        <div class="section-header">
+          <h2>Letzte Aktivitäten</h2>
+          <a href="#" class="view-all">Alle anzeigen</a>
+        </div>
+        <div class="activity-list">
+          <div class="activity-item">
+            <div class="activity-icon">
+              <i class="bi bi-shield-fill-exclamation"></i>
+            </div>
+            <div class="activity-content">
+              <div class="activity-title">
+                <strong>Simulation "AWS-Infrastruktur" gestartet</strong>
+                <span class="activity-time">Vor 20 Minuten</span>
+              </div>
+              <p>Die Simulation zur Überprüfung der AWS-Infrastruktur wurde gestartet.</p>
+              <div class="activity-tags">
+                <span class="tag">Simulation</span>
+                <span class="tag">AWS</span>
+              </div>
+            </div>
           </div>
-          <div class="card-content">
-            <div class="stats-grid">
-              <div class="stat-item">
-                <div class="stat-value">12</div>
-                <div class="stat-label">Active Simulations</div>
+          <div class="activity-item">
+            <div class="activity-icon">
+              <i class="bi bi-exclamation-triangle-fill text-warning"></i>
+            </div>
+            <div class="activity-content">
+              <div class="activity-title">
+                <strong>Schwachstelle in S3-Bucket-Konfiguration gefunden</strong>
+                <span class="activity-time">Vor 45 Minuten</span>
               </div>
-              <div class="stat-item">
-                <div class="stat-value">45</div>
-                <div class="stat-label">Infrastructure Models</div>
+              <p>
+                In der "AWS-Infrastruktur"-Simulation wurde eine potenziell unsichere
+                S3-Bucket-Konfiguration entdeckt.
+              </p>
+              <div class="activity-tags">
+                <span class="tag">Schwachstelle</span>
+                <span class="tag tag-warning">Mittel</span>
               </div>
-              <div class="stat-item">
-                <div class="stat-value">132</div>
-                <div class="stat-label">Detected Vulnerabilities</div>
+            </div>
+          </div>
+          <div class="activity-item">
+            <div class="activity-icon">
+              <i class="bi bi-person-fill-check"></i>
+            </div>
+            <div class="activity-content">
+              <div class="activity-title">
+                <strong>Benutzer "admin" hat sich angemeldet</strong>
+                <span class="activity-time">Vor 1 Stunde</span>
               </div>
-              <div class="stat-item">
-                <div class="stat-value">78%</div>
-                <div class="stat-label">Success Rate</div>
+              <p>Benutzer "admin" hat sich von IP-Adresse 192.168.1.1 angemeldet.</p>
+              <div class="activity-tags">
+                <span class="tag">Authentifizierung</span>
+                <span class="tag">Benutzer</span>
               </div>
             </div>
           </div>
@@ -191,307 +174,344 @@ interface RecentActivity {
     `
       .dashboard-container {
         padding: 24px;
-        height: 100%;
-        overflow-y: auto;
+        color: #e4e6eb;
       }
 
       .dashboard-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
         margin-bottom: 24px;
       }
 
       .dashboard-header h1 {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        margin-bottom: 8px;
-        font-size: 24px;
-        font-weight: 600;
-      }
-
-      .dashboard-header h1 i {
-        color: #3b82f6;
-      }
-
-      .dashboard-subtitle {
-        color: #a8a8a8;
-        font-size: 14px;
+        font-size: 28px;
+        font-weight: 500;
         margin: 0;
       }
 
-      .dashboard-grid {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 24px;
-      }
-
-      .dashboard-card {
-        background-color: #1a1a1a;
-        border-radius: 8px;
-        overflow: hidden;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-      }
-
-      .card-header {
-        padding: 16px;
-        border-bottom: 1px solid #333;
-      }
-
-      .card-header h2 {
+      .header-actions {
         display: flex;
-        align-items: center;
-        gap: 10px;
-        margin: 0;
-        font-size: 18px;
-        font-weight: 500;
-      }
-
-      .card-header h2 i {
-        color: #3b82f6;
-      }
-
-      .card-content {
-        padding: 16px;
-      }
-
-      .card-footer {
-        padding: 12px 16px;
-        border-top: 1px solid #333;
-        text-align: center;
-      }
-
-      /* System Status */
-      .status-item {
-        padding: 12px 0;
-        border-bottom: 1px solid #333;
-      }
-
-      .status-item:last-child {
-        border-bottom: none;
-      }
-
-      .status-item-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 8px;
-      }
-
-      .status-label {
-        font-weight: 500;
-      }
-
-      .status-indicator {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        padding: 4px 8px;
-        border-radius: 4px;
-        font-size: 12px;
-        font-weight: 500;
-      }
-
-      .status-normal {
-        color: #10b981;
-        background-color: rgba(16, 185, 129, 0.1);
-      }
-
-      .status-warning {
-        color: #f59e0b;
-        background-color: rgba(245, 158, 11, 0.1);
-      }
-
-      .status-critical {
-        color: #ef4444;
-        background-color: rgba(239, 68, 68, 0.1);
-      }
-
-      .status-message {
-        color: #a8a8a8;
-        font-size: 13px;
-        margin: 0;
-      }
-
-      /* Quick Actions */
-      .quick-actions-grid {
-        display: grid;
-        grid-template-columns: repeat(1, 1fr);
         gap: 16px;
       }
 
-      .quick-action-item {
+      .refresh-button {
         display: flex;
         align-items: center;
-        padding: 16px;
-        background-color: #262626;
-        border-radius: 8px;
-        color: #e4e6eb;
-        text-decoration: none;
+        gap: 8px;
+        background-color: #3b82f6;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        padding: 8px 16px;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
         transition: background-color 0.2s;
       }
 
-      .quick-action-item:hover {
-        background-color: #333;
+      .refresh-button:hover {
+        background-color: #2563eb;
       }
 
-      .quick-action-icon {
+      .date-selector {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background-color: #333;
+        border-radius: 4px;
+        padding: 8px 16px;
+        font-size: 14px;
+        cursor: pointer;
+      }
+
+      .metrics-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 16px;
+        margin-bottom: 24px;
+      }
+
+      .metric-card {
+        background-color: #1e1e1e;
+        border-radius: 8px;
+        padding: 20px;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        transition: transform 0.2s;
+      }
+
+      .metric-card:hover {
+        transform: translateY(-2px);
+      }
+
+      .metric-icon {
+        background-color: rgba(59, 130, 246, 0.1);
+        color: #3b82f6;
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
         display: flex;
         align-items: center;
         justify-content: center;
+        font-size: 24px;
+      }
+
+      .metric-content {
+        flex: 1;
+      }
+
+      .metric-content h3 {
+        font-size: 14px;
+        font-weight: 500;
+        color: #a8a8a8;
+        margin: 0 0 4px 0;
+      }
+
+      .metric-value {
+        font-size: 24px;
+        font-weight: 600;
+        margin-bottom: 4px;
+      }
+
+      .metric-change {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 12px;
+      }
+
+      .metric-change .positive {
+        color: #10b981; /* Green */
+      }
+
+      .metric-change .negative {
+        color: #ef4444; /* Red */
+      }
+
+      .metric-change .period {
+        color: #a8a8a8;
+      }
+
+      .metric-card.status-warning .metric-icon {
+        background-color: rgba(245, 158, 11, 0.1);
+        color: #f59e0b;
+      }
+
+      .metric-card.status-critical .metric-icon {
+        background-color: rgba(239, 68, 68, 0.1);
+        color: #ef4444;
+      }
+
+      .cards-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 16px;
+        margin-bottom: 24px;
+      }
+
+      .dashboard-card {
+        background-color: #1e1e1e;
+        border-radius: 8px;
+        padding: 20px;
+        cursor: pointer;
+        transition:
+          transform 0.2s,
+          background-color 0.2s;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .dashboard-card:hover {
+        transform: translateY(-2px);
+        background-color: #262626;
+      }
+
+      .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
+      }
+
+      .card-icon {
+        background-color: rgba(59, 130, 246, 0.1);
+        color: #3b82f6;
         width: 40px;
         height: 40px;
-        background-color: #3b82f6;
-        border-radius: 8px;
-        margin-right: 16px;
-      }
-
-      .quick-action-icon i {
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
         font-size: 20px;
-        color: #fff;
       }
 
-      .quick-action-content h3 {
-        margin: 0 0 4px 0;
-        font-size: 16px;
+      .card-count {
+        font-size: 18px;
+        font-weight: 600;
+        background-color: #333;
+        border-radius: 16px;
+        padding: 4px 12px;
+      }
+
+      .card-content {
+        flex: 1;
+      }
+
+      .card-content h3 {
+        font-size: 18px;
         font-weight: 500;
+        margin: 0 0 8px 0;
       }
 
-      .quick-action-content p {
-        margin: 0;
+      .card-content p {
+        font-size: 14px;
         color: #a8a8a8;
-        font-size: 13px;
+        margin: 0;
+        line-height: 1.5;
       }
 
-      /* Recent Activity */
+      .card-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 16px;
+        padding-top: 16px;
+        border-top: 1px solid #333;
+        font-size: 14px;
+        color: #3b82f6;
+      }
+
+      .dashboard-card.status-warning .card-icon {
+        background-color: rgba(245, 158, 11, 0.1);
+        color: #f59e0b;
+      }
+
+      .dashboard-card.status-critical .card-icon {
+        background-color: rgba(239, 68, 68, 0.1);
+        color: #ef4444;
+      }
+
+      .activity-section {
+        background-color: #1e1e1e;
+        border-radius: 8px;
+        padding: 20px;
+      }
+
+      .section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
+      }
+
+      .section-header h2 {
+        font-size: 18px;
+        font-weight: 500;
+        margin: 0;
+      }
+
+      .view-all {
+        color: #3b82f6;
+        text-decoration: none;
+        font-size: 14px;
+      }
+
+      .view-all:hover {
+        text-decoration: underline;
+      }
+
+      .activity-list {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
+
       .activity-item {
         display: flex;
-        padding: 12px 0;
+        gap: 16px;
+        padding-bottom: 16px;
         border-bottom: 1px solid #333;
       }
 
       .activity-item:last-child {
         border-bottom: none;
+        padding-bottom: 0;
       }
 
       .activity-icon {
+        background-color: #262626;
+        color: #3b82f6;
+        width: 36px;
+        height: 36px;
+        border-radius: 18px;
         display: flex;
         align-items: center;
         justify-content: center;
-        width: 32px;
-        height: 32px;
-        border-radius: 50%;
-        margin-right: 16px;
-      }
-
-      .activity-info {
-        background-color: rgba(59, 130, 246, 0.1);
-      }
-
-      .activity-success {
-        background-color: rgba(16, 185, 129, 0.1);
-      }
-
-      .activity-warning {
-        background-color: rgba(245, 158, 11, 0.1);
-      }
-
-      .activity-danger {
-        background-color: rgba(239, 68, 68, 0.1);
-      }
-
-      .activity-icon i {
         font-size: 16px;
+        flex-shrink: 0;
+      }
+
+      .activity-icon .text-warning {
+        color: #f59e0b;
       }
 
       .activity-content {
         flex: 1;
       }
 
-      .activity-header {
+      .activity-title {
         display: flex;
         justify-content: space-between;
+        align-items: flex-start;
         margin-bottom: 4px;
       }
 
-      .activity-description {
-        font-weight: 500;
-      }
-
       .activity-time {
+        font-size: 12px;
         color: #a8a8a8;
-        font-size: 12px;
       }
 
-      .activity-status {
+      .activity-content p {
+        font-size: 14px;
+        color: #a8a8a8;
+        margin: 0 0 8px 0;
+        line-height: 1.5;
+      }
+
+      .activity-tags {
         display: flex;
-        align-items: center;
-        gap: 6px;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .tag {
+        background-color: #262626;
+        color: #e4e6eb;
         font-size: 12px;
+        padding: 4px 8px;
+        border-radius: 4px;
       }
 
-      .status-info {
-        color: #3b82f6;
-      }
-
-      .status-success {
-        color: #10b981;
-      }
-
-      .status-warning {
+      .tag-warning {
+        background-color: rgba(245, 158, 11, 0.2);
         color: #f59e0b;
       }
 
-      .status-danger {
-        color: #ef4444;
-      }
+      @media (max-width: 768px) {
+        .dashboard-header {
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 16px;
+        }
 
-      .view-all-link {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
-        color: #3b82f6;
-        text-decoration: none;
-        font-size: 14px;
-        font-weight: 500;
-        transition: color 0.2s;
-      }
+        .metrics-row {
+          grid-template-columns: 1fr;
+        }
 
-      .view-all-link:hover {
-        color: #60a5fa;
-      }
-
-      /* Statistics */
-      .stats-grid {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 16px;
-      }
-
-      .stat-item {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        padding: 16px;
-        background-color: #262626;
-        border-radius: 8px;
-        text-align: center;
-      }
-
-      .stat-value {
-        font-size: 24px;
-        font-weight: 600;
-        margin-bottom: 8px;
-      }
-
-      .stat-label {
-        color: #a8a8a8;
-        font-size: 13px;
-      }
-
-      /* Responsive */
-      @media (max-width: 992px) {
-        .dashboard-grid {
+        .cards-container {
           grid-template-columns: 1fr;
         }
       }
@@ -499,119 +519,95 @@ interface RecentActivity {
   ],
 })
 export class DashboardComponent implements OnInit {
-  systemStatus: SystemStatus[] = [];
-  quickActions: QuickAction[] = [];
-  recentActivity: RecentActivity[] = [];
+  metrics: MetricCard[] = [
+    {
+      title: 'Aktive Simulationen',
+      value: 3,
+      icon: 'bi-play-circle-fill',
+      change: {
+        value: 25,
+        isPositive: true,
+      },
+    },
+    {
+      title: 'Erkannte Schwachstellen',
+      value: 12,
+      icon: 'bi-shield-fill-exclamation',
+      change: {
+        value: 8,
+        isPositive: false,
+      },
+      status: 'warning',
+    },
+    {
+      title: 'Gesicherte Ressourcen',
+      value: '86%',
+      icon: 'bi-shield-fill-check',
+      change: {
+        value: 12,
+        isPositive: true,
+      },
+    },
+    {
+      title: 'Durchschnittlicher Risk Score',
+      value: 42,
+      icon: 'bi-graph-up',
+      change: {
+        value: 15,
+        isPositive: true,
+      },
+    },
+  ];
 
-  constructor() {
-    // This empty constructor is intentionally kept for DI to work properly
-  }
+  cards: DashboardCard[] = [
+    {
+      title: 'Infrastrukturübersicht',
+      description: 'Übersicht der erkannten Infrastruktur und Ressourcen.',
+      icon: 'bi-hdd-network-fill',
+      routerLink: '/infrastruktur',
+      count: 42,
+    },
+    {
+      title: 'Aktive Simulationen',
+      description: 'Laufende und geplante Simulationen und Tests.',
+      icon: 'bi-play-circle-fill',
+      routerLink: '/simulationen',
+      count: 3,
+    },
+    {
+      title: 'Bedrohungsanalyse',
+      description: 'Analyse potenzieller Bedrohungen und Schwachstellen.',
+      icon: 'bi-shield-fill-exclamation',
+      routerLink: '/monitoring',
+      count: 12,
+      status: 'warning',
+    },
+    {
+      title: 'Compliance-Status',
+      description: 'Status der Einhaltung von Sicherheitsstandards.',
+      icon: 'bi-check-circle-fill',
+      routerLink: '/berichte',
+      count: 4,
+    },
+    {
+      title: 'Ausstehende Aufgaben',
+      description: 'Offene Sicherheitsaufgaben und Empfehlungen.',
+      icon: 'bi-list-check',
+      routerLink: '/aufgaben',
+      count: 8,
+      status: 'critical',
+    },
+    {
+      title: 'Einstellungen',
+      description: 'Konfiguration und Anpassung der Plattform.',
+      icon: 'bi-gear-fill',
+      routerLink: '/einstellungen',
+    },
+  ];
+
+  constructor() {}
 
   ngOnInit(): void {
-    // Initialize mock data
-    this.initializeData();
-  }
-
-  initializeData(): void {
-    // System status
-    this.systemStatus = [
-      {
-        component: 'Backend API',
-        status: 'normal',
-        message: 'All services operational',
-      },
-      {
-        component: 'Database',
-        status: 'normal',
-        message: 'Connected and responsive',
-      },
-      {
-        component: 'Simulation Engine',
-        status: 'warning',
-        message: 'High load detected, performance may be affected',
-      },
-      {
-        component: 'Storage',
-        status: 'normal',
-        message: '64% capacity utilized',
-      },
-    ];
-
-    // Quick actions
-    this.quickActions = [
-      {
-        icon: 'bi-play-circle',
-        label: 'Start New Simulation',
-        description: 'Create and run a new attack simulation',
-        route: '/simulationen',
-      },
-      {
-        icon: 'bi-hdd-rack',
-        label: 'Manage Infrastructure',
-        description: 'Create or modify infrastructure models',
-        route: '/infrastruktur',
-      },
-      {
-        icon: 'bi-file-earmark-text',
-        label: 'Generate Report',
-        description: 'Create security assessment reports',
-        route: '/berichte',
-      },
-      {
-        icon: 'bi-gear',
-        label: 'Configure Settings',
-        description: 'Adjust system and user preferences',
-        route: '/einstellungen',
-      },
-    ];
-
-    // Recent activity
-    this.recentActivity = [
-      {
-        id: 'act-1',
-        type: 'simulation',
-        description: 'Simulation "Cloud Pentest" completed',
-        timestamp: new Date(new Date().getTime() - 30 * 60000).toISOString(),
-        status: 'success',
-      },
-      {
-        id: 'act-2',
-        type: 'infrastructure',
-        description: 'Infrastructure "AWS Prod" modified',
-        timestamp: new Date(new Date().getTime() - 2 * 3600000).toISOString(),
-        status: 'info',
-      },
-      {
-        id: 'act-3',
-        type: 'simulation',
-        description: 'Simulation "DDoS Defense" failed',
-        timestamp: new Date(new Date().getTime() - 5 * 3600000).toISOString(),
-        status: 'danger',
-      },
-      {
-        id: 'act-4',
-        type: 'report',
-        description: 'Security report generated',
-        timestamp: new Date(new Date().getTime() - 1 * 86400000).toISOString(),
-        status: 'info',
-      },
-    ];
-  }
-
-  formatTime(timestamp: string): string {
-    const date = new Date(timestamp);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMs / 3600000);
-    const diffDays = Math.floor(diffMs / 86400000);
-
-    if (diffMins < 60) {
-      return `${diffMins} min ago`;
-    } else if (diffHours < 24) {
-      return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
-    } else {
-      return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
-    }
+    // Hier könnten wir Daten vom Backend laden
   }
 }
