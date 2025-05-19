@@ -33,7 +33,7 @@ func main() {
 	logging.Logger.Info("Logging initialized")
 
 	// Initialize tracing
-	tracer, closer, err := tracing.InitTracer("aegis-backend")
+	_, closer, err := tracing.InitTracer("aegis-backend")
 	if err != nil {
 		logging.Logger.Warnf("Could not initialize tracer: %v", err)
 	} else {
