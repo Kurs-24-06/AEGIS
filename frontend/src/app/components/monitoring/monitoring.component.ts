@@ -1,16 +1,14 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
 
 @Component({
-  selector: 'app-register',
+  selector: 'app-monitoring',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule],
   template: `
     <div class="container">
-      <h1>Registrierung</h1>
+      <h1>Monitoring</h1>
       <p>Diese Komponente wird gerade entwickelt.</p>
-      <a routerLink="/login">Zurück zum Login</a>
     </div>
   `,
   styles: [
@@ -21,4 +19,4 @@ import { RouterModule } from '@angular/router';
     `,
   ],
 })
-export class RegisterComponent {}
+export class MonitoringComponent {}

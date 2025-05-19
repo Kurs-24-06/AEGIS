@@ -1,263 +1,139 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { BehaviorSubject, Observable, of, throwError } from 'rxjs';
+import { BehaviorSubject, Observable, of } from 'rxjs';
 import { catchError, map, tap } from 'rxjs/operators';
-import { Router } from '@angular/router';
-import { environment } from '../../environments/environment';
+import { isPlatformBrowser } from '@angular/common';
+import { PLATFORM_ID, Inject } from '@angular/core';
 
 export interface User {
   id: string;
   username: string;
-  email: string;
-  fullName: string;
+  token: string;
   role: string;
-  permissions: string[];
-}
-
-export interface AuthState {
-  user: User | null;
-  token: string | null;
-  isAuthenticated: boolean;
-  isLoading: boolean;
-  error: string | null;
 }
 
 @Injectable({
-  providedIn: 'root',
+  providedIn: 'root'
 })
 export class AuthService {
-  private authStateSubject = new BehaviorSubject<AuthState>({
-    user: null,
-    token: null,
-    isAuthenticated: false,
-    isLoading: false,
-    error: null,
-  });
+  private currentUserSubject: BehaviorSubject<User | null> = new BehaviorSubject<User | null>(null);
+  private authStateKey = 'currentUser';
+  private apiUrl = '/api/auth'; // Ändere dies zu deiner tatsächlichen API-URL
 
-  authState$ = this.authStateSubject.asObservable();
-  user$ = this.authState$.pipe(map(state => state.user));
-  isAuthenticated$ = this.authState$.pipe(map(state => state.isAuthenticated));
-  isLoading$ = this.authState$.pipe(map(state => state.isLoading));
-  error$ = this.authState$.pipe(map(state => state.error));
-
-  private apiUrl = `${environment.apiUrl}/auth`;
-  private tokenKey = 'aegis_auth_token';
+  // Observable für den authentifizierten Status
+  public readonly currentUser$ = this.currentUserSubject.asObservable();
+  public readonly isAuthenticated$ = this.currentUser$.pipe(map(user => !!user));
 
   constructor(
     private http: HttpClient,
-    private router: Router
+    @Inject(PLATFORM_ID) private platformId: Object
   ) {
     this.loadAuthStateFromStorage();
   }
 
-  /**
-   * Load authentication state from storage on service initialization
-   */
+  // Aktuelle User-Daten abrufen
+  public get currentUserValue(): User | null {
+    return this.currentUserSubject.value;
+  }
+
+  // Initialer Ladezustand aus dem localStorage
   private loadAuthStateFromStorage(): void {
-    const token = localStorage.getItem(this.tokenKey);
-
-    if (token) {
-      this.validateToken(token).subscribe(
-        user => {
-          this.authStateSubject.next({
-            user,
-            token,
-            isAuthenticated: true,
-            isLoading: false,
-            error: null,
-          });
-        },
-        () => {
-          // Token invalid, clear storage
-          this.logout();
+    // Nur im Browser ausführen, nicht auf dem Server
+    if (isPlatformBrowser(this.platformId)) {
+      try {
+        const storedUser = localStorage.getItem(this.authStateKey);
+        if (storedUser) {
+          const user = JSON.parse(storedUser);
+          this.currentUserSubject.next(user);
         }
-      );
+      } catch (error) {
+        console.error('Error loading auth state from storage:', error);
+        // Storage zurücksetzen bei Korruptionsproblemen
+        localStorage.removeItem(this.authStateKey);
+      }
     }
   }
 
-  /**
-   * Validate token and get user info
-   */
-  private validateToken(token: string): Observable<User> {
-    // In a real application, this would call the backend to validate the token
-    // and return the current user information
-
-    // For development purposes, we'll simulate a server response
-    if (environment.production) {
-      return this.http.get<User>(`${this.apiUrl}/me`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-    } else {
-      // Mock user for development
-      const mockUser: User = {
-        id: '1',
-        username: 'admin',
-        email: 'admin@aegis-security.com',
-        fullName: 'System Administrator',
-        role: 'admin',
-        permissions: ['admin:all', 'simulation:run', 'infrastructure:manage'],
-      };
-
-      return of(mockUser);
+  // Im Storage speichern
+  private saveAuthStateToStorage(user: User | null): void {
+    if (isPlatformBrowser(this.platformId)) {
+      if (user) {
+        localStorage.setItem(this.authStateKey, JSON.stringify(user));
+      } else {
+        localStorage.removeItem(this.authStateKey);
+      }
     }
   }
 
-  /**
-   * Log in a user
-   */
+  // Login-Funktion
   login(username: string, password: string): Observable<User> {
-    this.authStateSubject.next({
-      ...this.authStateSubject.value,
-      isLoading: true,
-      error: null,
-    });
-
-    if (!environment.production) {
-      // Mock login for development
-      return this.mockLogin(username, password);
-    }
-
-    return this.http
-      .post<{ user: User; token: string }>(`${this.apiUrl}/login`, { username, password })
+    return this.http.post<User>(`${this.apiUrl}/login`, { username, password })
       .pipe(
-        tap(response => {
-          const { user, token } = response;
-          // Store token in local storage
-          localStorage.setItem(this.tokenKey, token);
-
-          // Update auth state
-          this.authStateSubject.next({
-            user,
-            token,
-            isAuthenticated: true,
-            isLoading: false,
-            error: null,
-          });
+        tap(user => {
+          this.currentUserSubject.next(user);
+          this.saveAuthStateToStorage(user);
         }),
-        map(response => response.user),
         catchError(error => {
-          this.authStateSubject.next({
-            ...this.authStateSubject.value,
-            isLoading: false,
-            error: error.error?.message || 'Failed to log in',
-          });
-          return throwError(error);
+          console.error('Login failed', error);
+          return of(error);
         })
       );
   }
 
-  /**
-   * Mock login for development
-   */
-  private mockLogin(username: string, password: string): Observable<User> {
-    return new Observable<User>(observer => {
-      // Simulate network delay
-      setTimeout(() => {
-        if (username === 'admin' && password === 'admin') {
-          const mockUser: User = {
-            id: '1',
-            username: 'admin',
-            email: 'admin@aegis-security.com',
-            fullName: 'System Administrator',
-            role: 'admin',
-            permissions: ['admin:all', 'simulation:run', 'infrastructure:manage'],
-          };
-
-          const token = 'mock-jwt-token';
-          localStorage.setItem(this.tokenKey, token);
-
-          this.authStateSubject.next({
-            user: mockUser,
-            token,
-            isAuthenticated: true,
-            isLoading: false,
-            error: null,
-          });
-
-          observer.next(mockUser);
-          observer.complete();
-        } else {
-          const errorMessage = 'Invalid username or password';
-
-          this.authStateSubject.next({
-            ...this.authStateSubject.value,
-            isLoading: false,
-            error: errorMessage,
-          });
-
-          observer.error(new Error(errorMessage));
-        }
-      }, 1000);
-    });
-  }
-
-  /**
-   * Log out the current user
-   */
-  logout(): void {
-    // Clear token from storage
-    localStorage.removeItem(this.tokenKey);
-
-    // Reset auth state
-    this.authStateSubject.next({
-      user: null,
-      token: null,
-      isAuthenticated: false,
-      isLoading: false,
-      error: null,
-    });
-
-    // Redirect to login page
-    this.router.navigate(['/login']);
-  }
-
-  /**
-   * Check if user has a specific permission
-   */
-  hasPermission(permission: string): boolean {
-    const state = this.authStateSubject.value;
-    if (!state.isAuthenticated || !state.user) {
-      return false;
-    }
-    return (
-      state.user.permissions.includes(permission) || state.user.permissions.includes('admin:all')
-    );
-  }
-
-  /**
-   * Get the current token
-   */
-  getToken(): string | null {
-    return this.authStateSubject.value.token || localStorage.getItem(this.tokenKey);
-  }
-
-  /**
-   * Refresh the authentication token
-   */
-  refreshToken(): Observable<string> {
-    if (!this.getToken()) {
-      return throwError(() => new Error('No token to refresh'));
-    }
-
-    return this.http.post<{ token: string }>(`${this.apiUrl}/refresh`, {}).pipe(
-      tap(response => {
-        const newToken = response.token;
-        localStorage.setItem(this.tokenKey, newToken);
-        // Update auth state with new token, keep user info same
-        const currentState = this.authStateSubject.value;
-        this.authStateSubject.next({
-          ...currentState,
-          token: newToken,
-          isAuthenticated: true,
-          error: null,
-        });
+  // Logout-Funktion
+  logout(): Observable<any> {
+    // Optional: API-Aufruf zum Backend für Logout
+    return this.http.post(`${this.apiUrl}/logout`, {}).pipe(
+      tap(() => {
+        this.currentUserSubject.next(null);
+        this.saveAuthStateToStorage(null);
       }),
-      map(response => response.token),
       catchError(error => {
-        // On refresh failure, logout user
-        this.logout();
-        return throwError(() => error);
+        // Auch bei API-Fehlern lokalen State leeren
+        this.currentUserSubject.next(null);
+        this.saveAuthStateToStorage(null);
+        return of(null);
       })
     );
+  }
+
+  // Funktion zur Token-Validierung
+  validateToken(): Observable<boolean> {
+    const currentUser = this.currentUserValue;
+    if (!currentUser) {
+      return of(false);
+    }
+
+    return this.http.post<{ valid: boolean }>(`${this.apiUrl}/validate-token`, { token: currentUser.token })
+      .pipe(
+        map(response => response.valid),
+        catchError(() => {
+          // Bei Fehlern ausloggen
+          this.logout();
+          return of(false);
+        })
+      );
+  }
+
+  // Für Demo-Zwecke
+  mockLogin(username: string, password: string): Observable<User> {
+    // Nur zum Demonstrationszweck!
+    if (username === 'admin' && password === 'admin') {
+      const mockUser: User = {
+        id: '1',
+        username: 'admin',
+        token: 'mock-jwt-token',
+        role: 'admin'
+      };
+      
+      this.currentUserSubject.next(mockUser);
+      this.saveAuthStateToStorage(mockUser);
+      return of(mockUser);
+    }
+    
+    // Fehlerfall
+    return new Observable(observer => {
+      observer.error({ message: 'Invalid username or password' });
+    });
   }
 }

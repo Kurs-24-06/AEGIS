@@ -1,8 +1,9 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
+import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-login',
@@ -30,8 +31,8 @@ import { AuthService } from '../../services/auth.service';
               class="form-control"
               placeholder="Enter your username"
             />
-            <div *ngIf="submitted && f.username.errors" class="error-message">
-              <div *ngIf="f.username.errors.required">Username is required</div>
+            <div *ngIf="submitted && f['username'].errors" class="error-message">
+              <div *ngIf="f['username'].errors?.['required']">Username is required</div>
             </div>
           </div>
 
@@ -49,8 +50,8 @@ import { AuthService } from '../../services/auth.service';
                 <i class="bi" [ngClass]="showPassword ? 'bi-eye-slash' : 'bi-eye'"></i>
               </button>
             </div>
-            <div *ngIf="submitted && f.password.errors" class="error-message">
-              <div *ngIf="f.password.errors.required">Password is required</div>
+            <div *ngIf="submitted && f['password'].errors" class="error-message">
+              <div *ngIf="f['password'].errors?.['required']">Password is required</div>
             </div>
           </div>
 
@@ -283,9 +284,7 @@ import { AuthService } from '../../services/auth.service';
     `,
   ],
 })
-import { Subscription } from 'rxjs';
-
-export class LoginComponent implements OnInit {
+export class LoginComponent implements OnInit, OnDestroy {
   loginForm!: FormGroup;
   loading = false;
   submitted = false;
@@ -312,11 +311,13 @@ export class LoginComponent implements OnInit {
     this.returnUrl = this.route.snapshot.queryParams['returnUrl'] || '/';
 
     // Check if already logged in
-    this.authSubscription = this.authService.isAuthenticated$.subscribe(isAuthenticated => {
-      if (isAuthenticated) {
-        this.router.navigate([this.returnUrl]);
+    this.authSubscription = this.authService.isAuthenticated$.subscribe(
+      (isAuthenticated: boolean) => {
+        if (isAuthenticated) {
+          this.router.navigate([this.returnUrl]);
+        }
       }
-    });
+    );
   }
 
   // Convenience getter for easy access to form fields
@@ -335,12 +336,16 @@ export class LoginComponent implements OnInit {
     this.loading = true;
     this.error = '';
 
-    this.authService.login(this.f.username.value, this.f.password.value).subscribe({
+    this.authService.login(this.f['username'].value, this.f['password'].value).subscribe({
       next: () => {
         this.router.navigate([this.returnUrl]);
       },
-      error: error => {
-        this.error = error.message || 'Invalid username or password';
+      error: (error: unknown) => {
+        if (error && typeof error === 'object' && 'message' in error) {
+          this.error = (error as { message?: string }).message || 'Invalid username or password';
+        } else {
+          this.error = 'Invalid username or password';
+        }
         this.loading = false;
       },
     });

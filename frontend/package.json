@@ -21,6 +21,7 @@
   },
   "private": true,
   "dependencies": {
+    "@analogjs/vite-plugin-angular": "^1.16.1",
     "@angular/animations": "^17.3.0",
     "@angular/common": "^17.3.0",
     "@angular/compiler": "^17.3.0",
@@ -51,6 +52,7 @@
     "@types/jasmine": "~5.1.0",
     "@types/jest": "^29.5.14",
     "@types/node": "^18.18.0",
+    "@vitejs/plugin-react": "^4.4.1",
     "angular-eslint": "19.3.0",
     "cypress": "^14.3.2",
     "eslint": "^9.25.1",
@@ -68,7 +70,8 @@
     "lint-staged": "^15.5.1",
     "prettier": "^3.5.3",
     "typescript": "~5.4.2",
-    "typescript-eslint": "8.27.0"
+    "typescript-eslint": "8.27.0",
+    "vite": "^5.4.19"
   },
   "lint-staged": {
     "**/*.{ts,tsx}": [

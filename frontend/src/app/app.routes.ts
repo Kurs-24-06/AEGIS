@@ -1,13 +1,13 @@
 import { Routes } from '@angular/router';
 import { DashboardComponent } from './components/dashboard/dashboard.component';
 import { InfrastructureComponent } from './components/infrastructure/infrastructure.component';
-import { SimulationsComponent } from './components/simulations/simulations.component';
+import { SimulationsComponent } from './components/simulations/simulation.component';
 import { MonitoringComponent } from './components/monitoring/monitoring.component';
 import { ReportsComponent } from './components/reports/reports.component';
 import { SettingsComponent } from './components/settings/settings.component';
 import { LoginComponent } from './components/auth/login.component';
 import { RegisterComponent } from './components/auth/register.component';
-import { AuthGuard } from './services/auth.guard';
+import { authGuard } from './services/auth.guard';
 
 export const routes: Routes = [
   // Public routes
@@ -16,35 +16,35 @@ export const routes: Routes = [
 
   // Protected routes
   {
-    path: '',
+    path: 'dashboard',
     component: DashboardComponent,
-    canActivate: [AuthGuard],
+    canActivate: [authGuard],
   },
   {
-    path: 'infrastruktur',
+    path: 'infrastructure',
     component: InfrastructureComponent,
-    canActivate: [AuthGuard],
+    canActivate: [authGuard],
   },
   {
-    path: 'simulationen',
+    path: 'simulations',
     component: SimulationsComponent,
-    canActivate: [AuthGuard],
+    canActivate: [authGuard],
   },
   {
     path: 'monitoring',
     component: MonitoringComponent,
-    canActivate: [AuthGuard],
+    canActivate: [authGuard],
   },
   {
-    path: 'berichte',
+    path: 'reports',
     component: ReportsComponent,
-    canActivate: [AuthGuard],
+    canActivate: [authGuard],
   },
   {
-    path: 'einstellungen',
+    path: 'settings',
     component: SettingsComponent,
-    canActivate: [AuthGuard],
+    canActivate: [authGuard],
   },
-  // Wildcard route, falls die Route nicht existiert - umleiten zur Startseite
-  { path: '**', redirectTo: '' },
+  // Wildcard route redirects to dashboard
+  { path: '**', redirectTo: 'dashboard' },
 ];

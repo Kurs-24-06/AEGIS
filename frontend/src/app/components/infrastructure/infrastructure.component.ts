@@ -1,14 +1,42 @@
 import { Component, ElementRef, OnInit, ViewChild, AfterViewInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
+import { FormsModule } from '@angular/forms';
 import * as d3 from 'd3';
 import { InfrastructureService, InfrastructureData } from '../../services/infrastructure.service';
 import { Subscription } from 'rxjs';
 
+interface InfrastructureNode extends d3.SimulationNodeDatum {
+  id: string;
+  name: string;
+  type: 'router' | 'server' | 'workstation' | string;
+  status: 'normal' | 'warning' | 'critical' | string;
+  ipAddress?: string;
+  metadata?: Record<string, string | number | boolean>;
+}
+
+interface InfrastructureLink extends d3.SimulationLinkDatum<InfrastructureNode> {
+  id: string;
+  source: string | InfrastructureNode;
+  target: string | InfrastructureNode;
+  status: 'normal' | 'warning' | 'critical' | string;
+  protocol?: string;
+  ports?: string[];
+}
+
+interface ConnectionData {
+  id: string;
+  source: string;
+  target: string;
+  status: string;
+  protocol?: string;
+  ports?: string[];
+}
+
 @Component({
   selector: 'app-infrastructure',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, FormsModule],
   template: `
     <div class="infrastructure-container">
       <header class="infrastructure-header">
@@ -16,7 +44,12 @@ import { Subscription } from 'rxjs';
         <div class="header-actions">
           <div class="search-container">
             <i class="bi bi-search"></i>
-            <input type="text" placeholder="Suche nach Ressourcen..." />
+            <input
+              type="text"
+              placeholder="Suche nach Ressourcen..."
+              [(ngModel)]="searchQuery"
+              (ngModelChange)="onSearchChange()"
+            />
           </div>
           <select class="view-selector">
             <option>Netzwerkansicht</option>
@@ -42,15 +75,30 @@ import { Subscription } from 'rxjs';
               <label>Typ</label>
               <div class="checkbox-list">
                 <div class="checkbox-item">
-                  <input type="checkbox" id="filter-type-router" checked />
+                  <input
+                    type="checkbox"
+                    id="filter-type-router"
+                    [checked]="filters.types.router"
+                    (change)="toggleFilter('type', 'router')"
+                  />
                   <label for="filter-type-router">Router</label>
                 </div>
                 <div class="checkbox-item">
-                  <input type="checkbox" id="filter-type-server" checked />
+                  <input
+                    type="checkbox"
+                    id="filter-type-server"
+                    [checked]="filters.types.server"
+                    (change)="toggleFilter('type', 'server')"
+                  />
                   <label for="filter-type-server">Server</label>
                 </div>
                 <div class="checkbox-item">
-                  <input type="checkbox" id="filter-type-workstation" checked />
+                  <input
+                    type="checkbox"
+                    id="filter-type-workstation"
+                    [checked]="filters.types.workstation"
+                    (change)="toggleFilter('type', 'workstation')"
+                  />
                   <label for="filter-type-workstation">Workstation</label>
                 </div>
               </div>
@@ -59,15 +107,30 @@ import { Subscription } from 'rxjs';
               <label>Status</label>
               <div class="checkbox-list">
                 <div class="checkbox-item">
-                  <input type="checkbox" id="filter-status-normal" checked />
+                  <input
+                    type="checkbox"
+                    id="filter-status-normal"
+                    [checked]="filters.statuses.normal"
+                    (change)="toggleFilter('status', 'normal')"
+                  />
                   <label for="filter-status-normal">Normal</label>
                 </div>
                 <div class="checkbox-item">
-                  <input type="checkbox" id="filter-status-warning" checked />
+                  <input
+                    type="checkbox"
+                    id="filter-status-warning"
+                    [checked]="filters.statuses.warning"
+                    (change)="toggleFilter('status', 'warning')"
+                  />
                   <label for="filter-status-warning">Warnung</label>
                 </div>
                 <div class="checkbox-item">
-                  <input type="checkbox" id="filter-status-critical" checked />
+                  <input
+                    type="checkbox"
+                    id="filter-status-critical"
+                    [checked]="filters.statuses.critical"
+                    (change)="toggleFilter('status', 'critical')"
+                  />
                   <label for="filter-status-critical">Kritisch</label>
                 </div>
               </div>
@@ -548,23 +611,41 @@ import { Subscription } from 'rxjs';
 export class InfrastructureComponent implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild('networkGraph') networkGraphElement!: ElementRef;
 
-  private svg: any;
-  private simulation: any;
-  private zoom: any;
-  private zoomGroup: any;
-  private nodes: any[] = [];
-  private links: any[] = [];
+  private svg!: d3.Selection<SVGSVGElement, unknown, null, undefined>;
+  private simulation!: d3.Simulation<
+    InfrastructureNode,
+    d3.SimulationLinkDatum<InfrastructureNode>
+  >;
+  private zoom!: d3.ZoomBehavior<SVGSVGElement, unknown>;
+  private zoomGroup!: d3.Selection<SVGGElement, unknown, null, undefined>;
+  private nodes: InfrastructureNode[] = [];
+  private links: InfrastructureLink[] = [];
+  private allNodes: InfrastructureNode[] = [];
+  private allLinks: InfrastructureLink[] = [];
   private subscription: Subscription | null = null;
 
-  selectedNode: any = null;
+  searchQuery = '';
+  selectedNode: InfrastructureNode | null = null;
+  filters = {
+    types: {
+      router: true,
+      server: true,
+      workstation: true,
+    },
+    statuses: {
+      normal: true,
+      warning: true,
+      critical: true,
+    },
+  };
 
   constructor(private infrastructureService: InfrastructureService) {}
 
   ngOnInit(): void {
     this.subscription = this.infrastructureService.getInfrastructureData().subscribe(
       (data: InfrastructureData) => {
-        this.nodes = data.nodes;
-        this.links = data.connections.map(connection => ({
+        this.allNodes = data.nodes as InfrastructureNode[];
+        this.allLinks = data.connections.map((connection: ConnectionData) => ({
           id: connection.id,
           source: connection.source,
           target: connection.target,
@@ -573,11 +654,9 @@ export class InfrastructureComponent implements OnInit, AfterViewInit, OnDestroy
           ports: connection.ports,
         }));
 
-        if (this.svg) {
-          this.updateVisualization();
-        }
+        this.applyFilters();
       },
-      error => {
+      (error: Error) => {
         console.error('Failed to load infrastructure data:', error);
       }
     );
@@ -614,10 +693,11 @@ export class InfrastructureComponent implements OnInit, AfterViewInit, OnDestroy
 
     // Add zoom behavior
     this.zoom = d3
-      .zoom()
+      .zoom<SVGSVGElement, unknown>()
       .scaleExtent([0.1, 4])
-      .on('zoom', event => {
-        this.zoomGroup.attr('transform', event.transform);
+      .on('zoom', (event: d3.D3ZoomEvent<SVGSVGElement, unknown>) => {
+        // Cast transform to any to avoid TypeScript error
+        this.zoomGroup.attr('transform', event.transform as any);
       });
 
     this.svg.call(this.zoom);
@@ -627,12 +707,12 @@ export class InfrastructureComponent implements OnInit, AfterViewInit, OnDestroy
 
     // Initialize simulation
     this.simulation = d3
-      .forceSimulation()
+      .forceSimulation<InfrastructureNode>()
       .force(
         'link',
         d3
-          .forceLink()
-          .id((d: any) => d.id)
+          .forceLink<InfrastructureNode, d3.SimulationLinkDatum<InfrastructureNode>>()
+          .id((d: InfrastructureNode) => d.id)
           .distance(100)
       )
       .force('charge', d3.forceManyBody().strength(-300))
@@ -649,8 +729,8 @@ export class InfrastructureComponent implements OnInit, AfterViewInit, OnDestroy
 
     // Create links
     const link = this.zoomGroup
-      .selectAll('.link')
-      .data(this.links, (d: any) => d.id)
+      .selectAll<SVGLineElement, InfrastructureLink>('.link')
+      .data(this.links, (d: InfrastructureLink) => d.id)
       .join(
         enter =>
           enter
@@ -663,15 +743,15 @@ export class InfrastructureComponent implements OnInit, AfterViewInit, OnDestroy
 
     // Create nodes
     const node = this.zoomGroup
-      .selectAll('.node')
-      .data(this.nodes, (d: any) => d.id)
+      .selectAll<SVGGElement, InfrastructureNode>('.node')
+      .data(this.nodes, (d: InfrastructureNode) => d.id)
       .join(
         enter => {
           const nodeGroup = enter
             .append('g')
             .attr('class', 'node')
             .call(this.drag(this.simulation))
-            .on('click', (event, d) => this.selectNode(d));
+            .on('click', (event: MouseEvent, d: InfrastructureNode) => this.selectNode(d));
 
           // Add circle
           nodeGroup
@@ -718,19 +798,27 @@ export class InfrastructureComponent implements OnInit, AfterViewInit, OnDestroy
     // Update simulation
     this.simulation.nodes(this.nodes).on('tick', () => {
       link
-        .attr('x1', (d: any) => d.source.x)
-        .attr('y1', (d: any) => d.source.y)
-        .attr('x2', (d: any) => d.target.x)
-        .attr('y2', (d: any) => d.target.y);
+        .attr('x1', d => (d.source as InfrastructureNode).x || 0)
+        .attr('y1', d => (d.source as InfrastructureNode).y || 0)
+        .attr('x2', d => (d.target as InfrastructureNode).x || 0)
+        .attr('y2', d => (d.target as InfrastructureNode).y || 0);
 
-      node.attr('transform', (d: any) => `translate(${d.x},${d.y})`);
+      node.attr('transform', d => `translate(${d.x || 0},${d.y || 0})`);
     });
 
-    this.simulation.force('link').links(this.links);
+    // Type assertion for force link
+    const linkForce = this.simulation.force('link') as d3.ForceLink<
+      InfrastructureNode,
+      d3.SimulationLinkDatum<InfrastructureNode>
+    >;
+    if (linkForce) {
+      linkForce.links(this.links);
+    }
+
     this.simulation.alpha(1).restart();
   }
 
-  getNodeColor(node: any): string {
+  getNodeColor(node: InfrastructureNode): string {
     switch (node.type) {
       case 'router':
         return '#3b82f6'; // Blue
@@ -743,72 +831,140 @@ export class InfrastructureComponent implements OnInit, AfterViewInit, OnDestroy
     }
   }
 
-  getNodeIcon(node: any): string {
+  getNodeIcon(node: InfrastructureNode): string {
     switch (node.type) {
       case 'router':
-        return '\\F5A0'; // bi-router
+        return '\uf5a0'; // bi-router
       case 'server':
-        return '\\F5B7'; // bi-server
+        return '\uf5b7'; // bi-server
       case 'workstation':
-        return '\\F5FC'; // bi-pc-display
+        return '\uf5fc'; // bi-pc-display
       default:
-        return '\\F5DF'; // bi-question-circle
+        return '\uf5df'; // bi-question-circle
     }
   }
 
-  drag(simulation: any): any {
-    function dragstarted(event: any) {
+  drag(
+    simulation: d3.Simulation<InfrastructureNode, d3.SimulationLinkDatum<InfrastructureNode>>
+  ): d3.DragBehavior<SVGGElement, InfrastructureNode, unknown> {
+    function dragstarted(event: d3.D3DragEvent<SVGGElement, InfrastructureNode, unknown>) {
       if (!event.active) simulation.alphaTarget(0.3).restart();
-      event.subject.fx = event.subject.x;
-      event.subject.fy = event.subject.y;
+      const subject = event.subject as InfrastructureNode;
+      subject.fx = subject.x;
+      subject.fy = subject.y;
     }
 
-    function dragged(event: any) {
-      event.subject.fx = event.x;
-      event.subject.fy = event.y;
+    function dragged(event: d3.D3DragEvent<SVGGElement, InfrastructureNode, unknown>) {
+      const subject = event.subject as InfrastructureNode;
+      subject.fx = event.x;
+      subject.fy = event.y;
     }
 
-    function dragended(event: any) {
+    function dragended(event: d3.D3DragEvent<SVGGElement, InfrastructureNode, unknown>) {
       if (!event.active) simulation.alphaTarget(0);
-      event.subject.fx = null;
-      event.subject.fy = null;
+      const subject = event.subject as InfrastructureNode;
+      subject.fx = null;
+      subject.fy = null;
     }
 
-    return d3.drag().on('start', dragstarted).on('drag', dragged).on('end', dragended);
+    return d3
+      .drag<SVGGElement, InfrastructureNode>()
+      .on('start', dragstarted)
+      .on('drag', dragged)
+      .on('end', dragended);
   }
 
-  selectNode(node: any): void {
+  selectNode(node: InfrastructureNode): void {
     this.selectedNode = node;
 
     // Update node highlighting
     this.zoomGroup.selectAll('.node-selected').classed('node-selected', false);
     this.zoomGroup
-      .selectAll('.node')
-      .filter((d: any) => d.id === node.id)
+      .selectAll<SVGGElement, InfrastructureNode>('.node')
+      .filter((d: InfrastructureNode) => d.id === node.id)
       .select('circle')
       .classed('node-selected', true);
   }
 
   zoomIn(): void {
-    this.svg.transition().duration(300).call(this.zoom.scaleBy, 1.3);
+    if (this.svg && this.zoom) {
+      this.svg.transition().duration(300).call(this.zoom.scaleBy, 1.3);
+    }
   }
 
   zoomOut(): void {
-    this.svg
-      .transition()
-      .duration(300)
-      .call(this.zoom.scaleBy, 1 / 1.3);
+    if (this.svg && this.zoom) {
+      this.svg
+        .transition()
+        .duration(300)
+        .call(this.zoom.scaleBy, 1 / 1.3);
+    }
   }
 
   resetZoom(): void {
-    const element = this.networkGraphElement.nativeElement;
-    const width = element.clientWidth;
-    const height = element.clientHeight;
+    if (!this.svg || !this.zoom) return;
 
-    this.svg
+    // Use a function wrapper to call zoom.transform to satisfy TypeScript typing
+    (this.zoomGroup as any)
       .transition()
       .duration(300)
-      .call(this.zoom.transform, d3.zoomIdentity.translate(width / 2, height / 2).scale(0.5));
+      .call((selection: any) => this.zoom.transform(selection, d3.zoomIdentity));
+  }
+
+  toggleFilter(type: 'type' | 'status', value: string): void {
+    if (type === 'type') {
+      this.filters.types[value as keyof typeof this.filters.types] =
+        !this.filters.types[value as keyof typeof this.filters.types];
+    } else {
+      this.filters.statuses[value as keyof typeof this.filters.statuses] =
+        !this.filters.statuses[value as keyof typeof this.filters.statuses];
+    }
+
+    this.applyFilters();
+  }
+
+  onSearchChange(): void {
+    // Debounce is handled in a real app using RxJS streams
+    setTimeout(() => {
+      this.applyFilters();
+    }, 300);
+  }
+
+  applyFilters(): void {
+    // Filter nodes based on search query and checkbox filters
+    this.nodes = this.allNodes.filter(node => {
+      // Check if node type is selected in filters
+      const typeMatch =
+        (node.type === 'router' && this.filters.types.router) ||
+        (node.type === 'server' && this.filters.types.server) ||
+        (node.type === 'workstation' && this.filters.types.workstation);
+
+      // Check if node status is selected in filters
+      const statusMatch =
+        (node.status === 'normal' && this.filters.statuses.normal) ||
+        (node.status === 'warning' && this.filters.statuses.warning) ||
+        (node.status === 'critical' && this.filters.statuses.critical);
+
+      // Check if node name matches search query
+      const searchMatch =
+        this.searchQuery === '' || node.name.toLowerCase().includes(this.searchQuery.toLowerCase());
+
+      return typeMatch && statusMatch && searchMatch;
+    });
+
+    // Filter links to only include connections between visible nodes
+    const nodeIds = new Set(this.nodes.map(node => node.id));
+    this.links = this.allLinks.filter(link => {
+      // Get source and target IDs, which might be either strings or objects
+      const sourceId = typeof link.source === 'string' ? link.source : link.source.id;
+      const targetId = typeof link.target === 'string' ? link.target : link.target.id;
+
+      return nodeIds.has(sourceId) && nodeIds.has(targetId);
+    });
+
+    if (this.svg) {
+      this.updateVisualization();
+    }
   }
 
   getNodeMetadataEntries(): { key: string; value: string }[] {
@@ -816,9 +972,13 @@ export class InfrastructureComponent implements OnInit, AfterViewInit, OnDestroy
       return [];
     }
 
+    if (typeof this.selectedNode.metadata !== 'object') {
+      return [];
+    }
+
     return Object.entries(this.selectedNode.metadata).map(([key, value]) => ({
       key: this.capitalizeFirstLetter(key),
-      value: value as string,
+      value: String(value),
     }));
   }
 

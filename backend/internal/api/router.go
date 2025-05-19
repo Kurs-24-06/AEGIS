@@ -37,6 +37,11 @@ func NewAPIRouter() *APIRouter {
 	
 	// Version endpoint
 	router.HandleFunc("/version", api.versionHandler).Methods("GET")
+
+	// Authentication endpoints
+	router.HandleFunc("/auth/login", api.loginHandler).Methods("POST")
+	router.HandleFunc("/auth/logout", api.logoutHandler).Methods("POST")
+	router.HandleFunc("/auth/validate-token", api.validateTokenHandler).Methods("POST")
 	
 	// Infrastructure endpoints
 	router.HandleFunc("/infrastructure", api.getInfrastructureHandler).Methods("GET")

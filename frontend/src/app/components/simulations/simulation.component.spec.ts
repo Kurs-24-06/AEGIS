@@ -2,15 +2,15 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { RouterTestingModule } from '@angular/router/testing';
 import { ActivatedRoute } from '@angular/router';
 
-import { DashboardComponent } from './dashboard.component';
+import { SimulationsComponent } from './simulation.component';
 
-describe('DashboardComponent', () => {
-  let component: DashboardComponent;
-  let fixture: ComponentFixture<DashboardComponent>;
+describe('SimulationsComponent', () => {
+  let component: SimulationsComponent;
+  let fixture: ComponentFixture<SimulationsComponent>;
 
-  beforeEach(async () => {
-    await TestBed.configureTestingModule({
-      imports: [DashboardComponent, RouterTestingModule],
+  beforeEach(() => {
+    TestBed.configureTestingModule({
+      imports: [SimulationsComponent, RouterTestingModule],
       providers: [
         {
           provide: ActivatedRoute,
@@ -25,7 +25,7 @@ describe('DashboardComponent', () => {
       ],
     }).compileComponents();
 
-    fixture = TestBed.createComponent(DashboardComponent);
+    fixture = TestBed.createComponent(SimulationsComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });

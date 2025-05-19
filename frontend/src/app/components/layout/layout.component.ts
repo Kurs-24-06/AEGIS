@@ -20,7 +20,7 @@ import { RouterModule, RouterOutlet } from '@angular/router';
         <nav class="sidebar-nav">
           <ul>
             <li *ngFor="let item of navItems">
-
+              <a
                 [routerLink]="item.path"
                 routerLinkActive="active"
                 [routerLinkActiveOptions]="{ exact: item.path === '/' }"
