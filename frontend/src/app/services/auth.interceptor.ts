@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+// src/app/services/auth.interceptor.ts
 import { HttpHandlerFn, HttpInterceptorFn, HttpRequest } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { Router } from '@angular/router';
@@ -22,7 +24,11 @@ export const authInterceptor: HttpInterceptorFn = (
   }
 
   // Add auth token if available
-  const token = authService.getToken();
+  // Hier ist der erste Fehler - "getToken" existiert nicht
+  // Stattdessen sollten wir den Token aus dem currentUserValue holen
+  const currentUser = authService.currentUserValue;
+  const token = currentUser?.token;
+
   if (token) {
     req = addToken(req, token);
   }
@@ -100,11 +106,25 @@ function handleUnauthorized(
   isRefreshing = true;
   refreshTokenSubject.next(null);
 
-  return authService.refreshToken().pipe(
-    switchMap((token: string) => {
+  // Hier ist der zweite Fehler - "refreshToken" existiert nicht
+  // Da du keine refreshToken-Implementierung hast, müssen wir die am besten ersetzen
+  // Mit einem validateToken-Aufruf oder einer anderen Methode, die du bereits hast
+
+  // Ich verwende hier validateToken als Ersatz
+  return authService.validateToken().pipe(
+    switchMap((isValid: boolean) => {
       isRefreshing = false;
-      refreshTokenSubject.next(token);
-      return next(addToken(request, token));
+
+      if (isValid && authService.currentUserValue?.token) {
+        // Wenn das Token noch gültig ist, verwenden wir es erneut
+        refreshTokenSubject.next(authService.currentUserValue.token);
+        return next(addToken(request, authService.currentUserValue.token));
+      } else {
+        // Wenn das Token ungültig ist, loggen wir den Benutzer aus
+        authService.logout();
+        router.navigate(['/login']);
+        return throwError(() => new Error('Session expired'));
+      }
     }),
     catchError(error => {
       isRefreshing = false;

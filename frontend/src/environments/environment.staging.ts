@@ -1,4 +1,3 @@
-// frontend/src/environments/environment.staging.ts
 export const environment = {
   production: true,
   apiUrl: 'https://api-staging.aegis-security.com/api',

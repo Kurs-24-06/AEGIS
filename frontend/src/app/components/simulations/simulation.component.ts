@@ -1,7 +1,10 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
-import { MonitoringService, SimulationStatus } from '../../services/monitoring.service';
+import { Component, OnInit, Inject } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { RouterModule } from '@angular/router';
+import { MockMonitoringService, SimulationStatus } from '../../services/mock-monitoring.service';
 
 interface SimulationItem {
   id: string;
@@ -42,7 +45,7 @@ interface SimulationItem {
             <option>Abgeschlossen</option>
             <option>Fehlgeschlagen</option>
           </select>
-          <button class="new-simulation-button">
+          <button class="new-s
             <i class="bi bi-plus-lg"></i>
             Neue Simulation
           </button>

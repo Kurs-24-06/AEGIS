@@ -8,7 +8,7 @@ export const environment = {
     enablePerformanceMetrics: true,
   },
   auth: {
-    clientId: 'local-dev-client',
+    clientId: 'aegis-dev-client',
     authority: 'http://localhost:8080/auth',
     redirectUri: 'http://localhost:4200/auth-callback',
     silentRefreshUri: 'http://localhost:4200/silent-refresh.html',

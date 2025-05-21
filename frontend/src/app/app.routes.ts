@@ -10,6 +10,9 @@ import { RegisterComponent } from './components/auth/register.component';
 import { authGuard } from './services/auth.guard';
 
 export const routes: Routes = [
+  // Root path redirect
+  { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
+
   // Public routes
   { path: 'login', component: LoginComponent },
   { path: 'register', component: RegisterComponent },

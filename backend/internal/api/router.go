@@ -27,46 +27,65 @@ type APIRouter struct {
 	router *mux.Router
 }
 
+func errorMiddleware(next http.Handler) http.Handler {
+    return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+        defer func() {
+            if err := recover(); err != nil {
+                logging.Logger.Errorf("Panic aufgetreten: %v", err)
+                response := Response{
+                    Status: "error",
+                    Error:  "Interner Serverfehler",
+                }
+                writeJSONResponse(w, http.StatusInternalServerError, response)
+            }
+        }()
+        next.ServeHTTP(w, r)
+    })
+}
+
 // NewAPIRouter creates a new API router
 func NewAPIRouter() *APIRouter {
-	router := mux.NewRouter().PathPrefix("/api").Subrouter()
-	api := &APIRouter{router: router}
+    router := mux.NewRouter().PathPrefix("/api").Subrouter()
+    api := &APIRouter{router: router}
+    
+    // Füge die Error-Middleware zum Router hinzu
+    router.Use(errorMiddleware)
 
-	// Health check
-	router.HandleFunc("/health", api.healthHandler).Methods("GET")
-	
-	// Version endpoint
-	router.HandleFunc("/version", api.versionHandler).Methods("GET")
+    // Health check
+    router.HandleFunc("/health", api.healthHandler).Methods("GET")
+    
+    // Version endpoint
+    router.HandleFunc("/version", api.versionHandler).Methods("GET")
 
-	// Authentication endpoints
-	router.HandleFunc("/auth/login", api.loginHandler).Methods("POST")
-	router.HandleFunc("/auth/logout", api.logoutHandler).Methods("POST")
-	router.HandleFunc("/auth/validate-token", api.validateTokenHandler).Methods("POST")
-	
-	// Infrastructure endpoints
-	router.HandleFunc("/infrastructure", api.getInfrastructureHandler).Methods("GET")
-	router.HandleFunc("/infrastructure", api.createInfrastructureHandler).Methods("POST")
-	
-	// Simulation endpoints
-	router.HandleFunc("/simulations", api.getSimulationsHandler).Methods("GET")
-	router.HandleFunc("/simulations/{id}", api.getSimulationHandler).Methods("GET")
-	router.HandleFunc("/simulations", api.createSimulationHandler).Methods("POST")
-	router.HandleFunc("/simulations/{id}/start", api.startSimulationHandler).Methods("POST")
-	router.HandleFunc("/simulations/{id}/stop", api.stopSimulationHandler).Methods("POST")
-	router.HandleFunc("/simulations/{id}/pause", api.pauseSimulationHandler).Methods("POST")
-	
-	// Monitoring endpoints
-	router.HandleFunc("/monitoring/simulations/{id}/status", api.getSimulationStatusHandler).Methods("GET")
-	router.HandleFunc("/monitoring/simulations/{id}/events", api.getSimulationEventsHandler).Methods("GET")
-	router.HandleFunc("/monitoring/simulations/{id}/resources", api.getAffectedResourcesHandler).Methods("GET")
-	
-	// Initialisiere den Simulations-Service mit Beispieldaten für die Entwicklung
-	if os.Getenv("ENVIRONMENT") == "development" {
-		simulation.GetService().AddMockData()
+    // Authentication endpoints
+    router.HandleFunc("/auth/login", api.loginHandler).Methods("POST")
+    router.HandleFunc("/auth/logout", api.logoutHandler).Methods("POST")
+    router.HandleFunc("/auth/validate-token", api.validateTokenHandler).Methods("POST")
+    
+    // Infrastructure endpoints
+    router.HandleFunc("/infrastructure", api.getInfrastructureHandler).Methods("GET")
+    router.HandleFunc("/infrastructure", api.createInfrastructureHandler).Methods("POST")
+    
+    // Simulation endpoints
+    router.HandleFunc("/simulations", api.getSimulationsHandler).Methods("GET")
+    router.HandleFunc("/simulations/{id}", api.getSimulationHandler).Methods("GET")
+    router.HandleFunc("/simulations", api.createSimulationHandler).Methods("POST")
+    router.HandleFunc("/simulations/{id}/start", api.startSimulationHandler).Methods("POST")
+    router.HandleFunc("/simulations/{id}/stop", api.stopSimulationHandler).Methods("POST")
+    router.HandleFunc("/simulations/{id}/pause", api.pauseSimulationHandler).Methods("POST")
+    
+    // Monitoring endpoints
+    router.HandleFunc("/monitoring/simulations/{id}/status", api.getSimulationStatusHandler).Methods("GET")
+    router.HandleFunc("/monitoring/simulations/{id}/events", api.getSimulationEventsHandler).Methods("GET")
+    router.HandleFunc("/monitoring/simulations/{id}/resources", api.getAffectedResourcesHandler).Methods("GET")
+    
+    // Initialisiere den Simulations-Service mit Beispieldaten für die Entwicklung
+    if os.Getenv("ENVIRONMENT") == "development" {
+        simulation.GetService().AddMockData()
+    }
+
+    return api
 	}
-
-	return api
-}
 
 // Handler returns the router handler
 func (api *APIRouter) Handler() http.Handler {

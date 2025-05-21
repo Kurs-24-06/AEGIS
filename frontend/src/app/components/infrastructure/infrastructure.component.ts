@@ -72,7 +72,7 @@ interface ConnectionData {
           <div class="sidebar-section">
             <h3>Filter</h3>
             <div class="filter-group">
-              <label>Typ</label>
+              <span>Typ</span>
               <div class="checkbox-list">
                 <div class="checkbox-item">
                   <input
@@ -104,7 +104,7 @@ interface ConnectionData {
               </div>
             </div>
             <div class="filter-group">
-              <label>Status</label>
+              <span>Status</span>
               <div class="checkbox-list">
                 <div class="checkbox-item">
                   <input
@@ -696,9 +696,10 @@ export class InfrastructureComponent implements OnInit, AfterViewInit, OnDestroy
       .zoom<SVGSVGElement, unknown>()
       .scaleExtent([0.1, 4])
       .on('zoom', (event: d3.D3ZoomEvent<SVGSVGElement, unknown>) => {
-        // Cast transform to any to avoid TypeScript error
-        this.zoomGroup.attr('transform', event.transform as any);
+        this.zoomGroup.attr('transform', event.transform.toString());
       });
+
+    this.svg.call(this.zoom);
 
     this.svg.call(this.zoom);
 
@@ -904,11 +905,20 @@ export class InfrastructureComponent implements OnInit, AfterViewInit, OnDestroy
   resetZoom(): void {
     if (!this.svg || !this.zoom) return;
 
-    // Use a function wrapper to call zoom.transform to satisfy TypeScript typing
-    (this.zoomGroup as any)
+    this.svg
       .transition()
       .duration(300)
-      .call((selection: any) => this.zoom.transform(selection, d3.zoomIdentity));
+      .call((transition: d3.Transition<SVGSVGElement, unknown, null, undefined>) =>
+        this.zoom.transform(
+          transition.selection() as unknown as d3.Selection<
+            SVGSVGElement,
+            unknown,
+            null,
+            undefined
+          >,
+          d3.zoomIdentity
+        )
+      );
   }
 
   toggleFilter(type: 'type' | 'status', value: string): void {

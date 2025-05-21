@@ -336,6 +336,7 @@ export class LoginComponent implements OnInit, OnDestroy {
     this.loading = true;
     this.error = '';
 
+    // Verwende immer die login-Methode für Konsistenz
     this.authService.login(this.f['username'].value, this.f['password'].value).subscribe({
       next: () => {
         this.router.navigate([this.returnUrl]);

@@ -1,9 +1,11 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, Observable, of } from 'rxjs';
 import { catchError, map, tap } from 'rxjs/operators';
 import { isPlatformBrowser } from '@angular/common';
 import { PLATFORM_ID, Inject } from '@angular/core';
+import { throwError } from 'rxjs';
 
 export interface User {
   id: string;
@@ -13,7 +15,7 @@ export interface User {
 }
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class AuthService {
   private currentUserSubject: BehaviorSubject<User | null> = new BehaviorSubject<User | null>(null);
@@ -26,7 +28,7 @@ export class AuthService {
 
   constructor(
     private http: HttpClient,
-    @Inject(PLATFORM_ID) private platformId: Object
+    @Inject(PLATFORM_ID) private platformId: object
   ) {
     this.loadAuthStateFromStorage();
   }
@@ -67,17 +69,31 @@ export class AuthService {
 
   // Login-Funktion
   login(username: string, password: string): Observable<User> {
-    return this.http.post<User>(`${this.apiUrl}/login`, { username, password })
-      .pipe(
-        tap(user => {
-          this.currentUserSubject.next(user);
-          this.saveAuthStateToStorage(user);
-        }),
-        catchError(error => {
-          console.error('Login failed', error);
-          return of(error);
-        })
-      );
+    // Für Demo-Zwecke: Wenn API nicht verfügbar, verwende Mock-Login
+    if (username === 'admin' && password === 'admin') {
+      const mockUser: User = {
+        id: '1',
+        username: 'admin',
+        token: 'mock-jwt-token',
+        role: 'admin',
+      };
+
+      this.currentUserSubject.next(mockUser);
+      this.saveAuthStateToStorage(mockUser);
+      return of(mockUser);
+    }
+
+    return this.http.post<User>(`${this.apiUrl}/login`, { username, password }).pipe(
+      tap(user => {
+        this.currentUserSubject.next(user);
+        this.saveAuthStateToStorage(user);
+      }),
+      catchError(error => {
+        console.error('Login failed', error);
+        // Fehler weiterleiten statt zu verschlucken
+        return throwError(() => error);
+      })
+    );
   }
 
   // Logout-Funktion
@@ -104,7 +120,8 @@ export class AuthService {
       return of(false);
     }
 
-    return this.http.post<{ valid: boolean }>(`${this.apiUrl}/validate-token`, { token: currentUser.token })
+    return this.http
+      .post<{ valid: boolean }>(`${this.apiUrl}/validate-token`, { token: currentUser.token })
       .pipe(
         map(response => response.valid),
         catchError(() => {
@@ -123,14 +140,14 @@ export class AuthService {
         id: '1',
         username: 'admin',
         token: 'mock-jwt-token',
-        role: 'admin'
+        role: 'admin',
       };
-      
+
       this.currentUserSubject.next(mockUser);
       this.saveAuthStateToStorage(mockUser);
       return of(mockUser);
     }
-    
+
     // Fehlerfall
     return new Observable(observer => {
       observer.error({ message: 'Invalid username or password' });

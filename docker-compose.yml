@@ -53,27 +53,22 @@ services:
       - backend-data:/app/data
       - backend-logs:/app/logs
     environment:
-      - ENVIRONMENT=${ENV:-development}
-      # Database settings
+      - ENVIRONMENT=${ENVIRONMENT:-development}
+      - DEBUG=${DEBUG:-true}
+      - LOG_LEVEL=${LOG_LEVEL:-debug}
       - DB_HOST=${DB_HOST:-postgres}
       - DB_PORT=${DB_PORT:-5432}
       - DB_USER=${DB_USER:-aegisuser}
-      - DB_PASSWORD=${DB_PASSWORD:-dev_password}
+      - DB_PASSWORD=${DB_PASSWORD:-dev-password}
       - DB_NAME=${DB_NAME:-aegis_dev}
-      # Redis settings
       - REDIS_HOST=${REDIS_HOST:-redis}
       - REDIS_PORT=${REDIS_PORT:-6379}
       - REDIS_PASSWORD=${REDIS_PASSWORD:-}
-      # Security settings
-      - JWT_SECRET=${JWT_SECRET:-dev_jwt_secret}
+      - JWT_SECRET=${JWT_SECRET:-dev-jwt-secret}
       - TOKEN_EXPIRY=${TOKEN_EXPIRY:-24h}
-      # Logging settings
-      - LOG_LEVEL=${LOG_LEVEL:-info}
-      - LOG_FORMAT=${LOG_FORMAT:-text}
-      # Simulation settings
-      - SIMULATION_WORKERS=${SIMULATION_WORKERS:-2}
-      - SIMULATION_BUFFER=${SIMULATION_BUFFER:-1000}
-      - SIMULATION_TIMEOUT=${SIMULATION_TIMEOUT:-300}
+      - FEATURE_EXPERIMENTAL=${FEATURE_EXPERIMENTAL:-true}
+      - FEATURE_DEBUG_MODE=${FEATURE_DEBUG_MODE:-true}
+      - FEATURE_METRICS=${FEATURE_METRICS:-true}
     depends_on:
       - postgres
       - redis

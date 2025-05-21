@@ -1,20 +1,33 @@
 version: "3.8"
 
-# AEGIS Development Docker Compose Configuration
 services:
-  # Frontend service overrides for development
+  # Frontend-Service
   frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    ports:
+      - "4200:4200"
     volumes:
       - ./frontend:/app
       - /app/node_modules
+    environment:
+      - NODE_ENV=development
+    depends_on:
+      - backend
+    networks:
+      - aegis-network
 
-  # Backend service overrides for development
+  # Backend-Service
   backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    ports:
+      - "8080:8080"
     volumes:
       - ./backend:/app
       - /app/go/pkg/mod
-      - backend-data:/app/data
-      - backend-logs:/app/logs
     environment:
       - ENVIRONMENT=development
       - DB_HOST=postgres
@@ -24,53 +37,41 @@ services:
       - DB_NAME=aegis_dev
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-      - REDIS_PASSWORD=
-      - JWT_SECRET=dev_jwt_secret
-      - TOKEN_EXPIRY=24h
-      - LOG_LEVEL=info
-      - LOG_FORMAT=text
-      - SIMULATION_WORKERS=2
-      - SIMULATION_BUFFER=1000
-      - SIMULATION_TIMEOUT=300
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - aegis-network
 
-  # PostgreSQL with TimescaleDB for development
+  # PostgreSQL mit TimescaleDB für Zeitreihendaten
   postgres:
     image: timescale/timescaledb:latest-pg14
     ports:
       - "5432:5432"
     environment:
       - POSTGRES_USER=aegisuser
-      - POSTGRES_PASSWORD=dev-password
+      - POSTGRES_PASSWORD=dev_password
       - POSTGRES_DB=aegis_dev
-      - TIMESCALEDB_TELEMETRY=off
     volumes:
-      - ./data/postgres:/var/lib/postgresql/data
+      - postgres-data:/var/lib/postgresql/data
       - ./backend/db/migrations:/docker-entrypoint-initdb.d
     networks:
       - aegis-network
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U aegisuser -d aegis_dev"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    restart: unless-stopped
 
-  # Redis for caching and pub/sub
+  # Redis für Caching und Pub/Sub
   redis:
     image: redis:alpine
     ports:
       - "6379:6379"
-    command: redis-server --appendonly yes
     volumes:
-      - ./data/redis:/data
+      - redis-data:/data
     networks:
       - aegis-network
-    restart: unless-stopped
 
 networks:
   aegis-network:
     driver: bridge
 
 volumes:
-  backend-data:
-  backend-logs:
+  postgres-data:
+  redis-data:

@@ -1,28 +1,16 @@
 module.exports = {
-  preset: "jest-preset-angular",
-  setupFilesAfterEnv: ["<rootDir>/setup-jest.ts"],
-  globalSetup: "jest-preset-angular/global-setup",
-  testPathIgnorePatterns: [
-    "<rootDir>/node_modules/",
-    "<rootDir>/dist/",
-    "<rootDir>/e2e/",
-  ],
-  coverageDirectory: "<rootDir>/coverage/frontend",
-  coverageReporters: ["json", "lcov", "text", "clover", "html"],
-  moduleNameMapper: {
-    "^@app/(.*)$": "<rootDir>/src/app/$1",
-    "^@core/(.*)$": "<rootDir>/src/app/core/$1",
-    "^@shared/(.*)$": "<rootDir>/src/app/shared/$1",
-    "^@env/(.*)$": "<rootDir>/src/environments/$1",
+  preset: 'jest-preset-angular',
+  setupFilesAfterEnv: ['<rootDir>/setup-jest.ts'],
+  testEnvironment: 'jsdom',
+  transform: {
+    '^.+\\.(ts|js|html)$': 'ts-jest',
   },
-  reporters: [
-    "default",
-    [
-      "jest-junit",
-      {
-        outputDirectory: "./coverage/frontend",
-        outputName: "junit.xml",
-      },
-    ],
-  ],
+  transformIgnorePatterns: ['node_modules/(?!d3|@angular|rxjs|tslib)'],
+  moduleFileExtensions: ['ts', 'js', 'html', 'json', 'mjs'],
+  globals: {
+    'ts-jest': {
+      tsconfig: '<rootDir>/tsconfig.spec.json',
+      stringifyContentPathRegex: '\\.html$',
+    },
+  },
 };
