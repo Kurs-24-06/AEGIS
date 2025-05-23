@@ -65,6 +65,8 @@ func NewAPIRouter() *APIRouter {
     // Infrastructure endpoints
     router.HandleFunc("/infrastructure", api.getInfrastructureHandler).Methods("GET")
     router.HandleFunc("/infrastructure", api.createInfrastructureHandler).Methods("POST")
+	router.HandleFunc("/infrastructure/{id}", api.getInfrastructureDetailsHandler).Methods("GET")
+	router.HandleFunc("/infrastructure/import", api.importInfrastructureHandler).Methods("POST")
     
     // Simulation endpoints
     router.HandleFunc("/simulations", api.getSimulationsHandler).Methods("GET")
@@ -82,6 +84,12 @@ func NewAPIRouter() *APIRouter {
     // Initialisiere den Simulations-Service mit Beispieldaten für die Entwicklung
     if os.Getenv("ENVIRONMENT") == "development" {
         simulation.GetService().AddMockData()
+
+	
+	// Scenario endpoints
+	router.HandleFunc("/scenarios", api.getScenariosHandler).Methods("GET")
+	router.HandleFunc("/scenarios/{id}", api.getScenarioHandler).Methods("GET")
+	router.HandleFunc("/scenarios", api.createScenarioHandler).Methods("POST")
     }
 
     return api
@@ -317,21 +325,53 @@ func (api *APIRouter) getSimulationEventsHandler(w http.ResponseWriter, r *http.
 }
 
 func (api *APIRouter) getAffectedResourcesHandler(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	id := vars["id"]
-	
-	simService := simulation.GetService()
-	resources, err := simService.GetAffectedResources(id)
-	if err != nil {
-		writeErrorResponse(w, http.StatusNotFound, err.Error())
-		return
-	}
-	
-	response := Response{
-		Status: "success",
-		Data:   resources,
-	}
-	writeJSONResponse(w, http.StatusOK, response)
+    vars := mux.Vars(r)
+    id := vars["id"]
+    
+    // Erzeuge Mock-Ressourcen für die Simulation
+    resources := []map[string]interface{}{
+        {
+            "id":          "resource-1",
+            "simulationId": id,
+            "name":        "Web Server",
+            "type":        "server",
+            "status":      "vulnerable",
+            "threatLevel": 0.4,
+            "attackVector": "Outdated Apache Version",
+        },
+        {
+            "id":          "resource-2",
+            "simulationId": id,
+            "name":        "Database Server",
+            "type":        "server",
+            "status":      "compromised",
+            "threatLevel": 0.8,
+            "attackVector": "SQL Injection",
+        },
+        {
+            "id":          "resource-3",
+            "simulationId": id,
+            "name":        "Gateway Router",
+            "type":        "router",
+            "status":      "normal",
+            "threatLevel": 0.1,
+        },
+        {
+            "id":          "resource-4",
+            "simulationId": id,
+            "name":        "Admin Workstation",
+            "type":        "workstation",
+            "status":      "attacked",
+            "threatLevel": 0.6,
+            "attackVector": "Phishing Email",
+        },
+    }
+    
+    response := Response{
+        Status: "success",
+        Data:   resources,
+    }
+    writeJSONResponse(w, http.StatusOK, response)
 }
 
 // Helper functions

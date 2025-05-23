@@ -2,13 +2,14 @@ import { Injectable } from '@angular/core';
 import { Observable, of, throwError } from 'rxjs';
 import { delay } from 'rxjs/operators';
 
-export type SimulationStatus =
-  | 'not_started'
-  | 'running'
-  | 'paused'
-  | 'completed'
-  | 'stopped'
-  | 'failed';
+export enum SimulationStatus {
+  NOT_STARTED = 'not_started',
+  RUNNING = 'running',
+  PAUSED = 'paused',
+  COMPLETED = 'completed',
+  STOPPED = 'stopped',
+  FAILED = 'failed',
+}
 
 @Injectable({
   providedIn: 'root',
@@ -19,14 +20,14 @@ export class MockMonitoringService {
   constructor() {}
 
   startSimulation(simulationId: string): Observable<SimulationStatus> {
-    this.simulationStatuses.set(simulationId, 'running');
-    return of('running').pipe(delay(500));
+    this.simulationStatuses.set(simulationId, SimulationStatus.RUNNING);
+    return of(SimulationStatus.RUNNING).pipe(delay(500));
   }
 
   pauseSimulation(simulationId: string): Observable<SimulationStatus> {
     if (this.simulationStatuses.get(simulationId) === 'running') {
-      this.simulationStatuses.set(simulationId, 'paused');
-      return of('paused').pipe(delay(500));
+      this.simulationStatuses.set(simulationId, SimulationStatus.PAUSED);
+      return of(SimulationStatus.PAUSED).pipe(delay(500));
     } else {
       return throwError(() => new Error('Simulation not running')).pipe(delay(500));
     }
@@ -35,8 +36,8 @@ export class MockMonitoringService {
   stopSimulation(simulationId: string): Observable<SimulationStatus> {
     const currentStatus = this.simulationStatuses.get(simulationId);
     if (currentStatus === 'running' || currentStatus === 'paused') {
-      this.simulationStatuses.set(simulationId, 'stopped');
-      return of('stopped').pipe(delay(500));
+      this.simulationStatuses.set(simulationId, SimulationStatus.STOPPED);
+      return of(SimulationStatus.STOPPED).pipe(delay(500));
     } else {
       return throwError(() => new Error('Simulation not running or paused')).pipe(delay(500));
     }

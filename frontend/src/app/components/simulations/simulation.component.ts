@@ -1,7 +1,4 @@
-import { Component, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
-import { Component, OnInit, Inject } from '@angular/core';
+import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { MockMonitoringService, SimulationStatus } from '../../services/mock-monitoring.service';
@@ -45,7 +42,7 @@ interface SimulationItem {
             <option>Abgeschlossen</option>
             <option>Fehlgeschlagen</option>
           </select>
-          <button class="new-s
+          <button class="new-simulation-button">
             <i class="bi bi-plus-lg"></i>
             Neue Simulation
           </button>
@@ -693,7 +690,7 @@ interface SimulationItem {
     `,
   ],
 })
-export class SimulationsComponent implements OnInit {
+export class SimulationsComponent {
   simulations: SimulationItem[] = [
     {
       id: '1',
@@ -790,11 +787,7 @@ export class SimulationsComponent implements OnInit {
     },
   ];
 
-  constructor(private monitoringService: MonitoringService) {}
-
-  ngOnInit(): void {
-    // Hier könnten wir echte Daten vom Backend laden
-  }
+  constructor(private monitoringService: MockMonitoringService) {}
 
   hasActiveSimulations(): boolean {
     return this.simulations.some(

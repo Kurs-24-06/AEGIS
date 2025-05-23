@@ -1,5 +1,6 @@
 {
-  "version": "",
-  "buildTimestamp": "2025-04-30T14:06:38Z",
-  "gitCommit": "d26f4a7"
+  "version": "0.1.0-10-g8760441-dirty",
+  "buildTimestamp": "2025-05-22T19:42:02Z",
+  "gitCommit": "8760441",
+  "dirty": true-dirty
 }

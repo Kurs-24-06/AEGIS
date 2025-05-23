@@ -125,12 +125,6 @@ function handleUnauthorized(
         router.navigate(['/login']);
         return throwError(() => new Error('Session expired'));
       }
-    }),
-    catchError(error => {
-      isRefreshing = false;
-      authService.logout();
-      router.navigate(['/login']);
-      return throwError(() => error);
     })
   );
 }

@@ -1,4 +1,4 @@
-# backend/config/config.dev.yaml
+# Generated for dev environment - Thu, May 22, 2025  9:41:51 PM
 server:
   port: 8080
   debug: true
@@ -32,5 +32,5 @@ logging:
 
 auth:
   enabled: true
-  jwt_secret: "dev-secret-key-replace-in-production"
+  jwt_secret: "dev-jwt-secret-change-me"
   token_expiry: "24h"

@@ -4,11 +4,8 @@ FROM node:20-alpine
 # Set working directory
 WORKDIR /app
 
-# Add development dependencies
-RUN apk add --no-cache git
-
-# Install global packages
-RUN npm install -g @angular/cli@17.3.16
+# Install Angular CLI globally
+RUN npm install -g @angular/cli@17
 
 # Copy package files
 COPY package*.json ./
@@ -16,11 +13,11 @@ COPY package*.json ./
 # Install dependencies
 RUN npm ci
 
-# Copy rest of application
+# Copy the rest of the application
 COPY . .
 
 # Expose development server port
 EXPOSE 4200
 
-# Start development server with hot reload
+# Start development server
 CMD ["ng", "serve", "--host", "0.0.0.0", "--disable-host-check"]

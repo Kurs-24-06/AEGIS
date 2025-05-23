@@ -1,4 +1,4 @@
-# Development Environment Configuration
+# Generated for dev environment - Thu, May 22, 2025  9:41:51 PM
 environment: dev
 domain: dev.aegis-security.com
 replicas:
@@ -23,10 +23,11 @@ logging:
   level: "debug"
   retention: "7d"
 database:
-  backupSchedule: "0 0 * * *" # Daily at midnight
+  backupSchedule: "0 0 * * *"
   backupRetention: "7d"
 monitoring:
   alerting: false
+  alertReceivers:
   dashboards:
     - name: "overview"
     - name: "performance"
