@@ -1,4 +1,3 @@
-# Generated for dev environment - Thu, May 22, 2025  9:41:51 PM
 server:
   port: 8080
   debug: true

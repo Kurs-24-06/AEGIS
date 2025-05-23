@@ -59,34 +59,34 @@ func main() {
 	// Initialize API router
 	apiRouter := api.NewAPIRouter()
 
-	// Set up main router
-	router := http.NewServeMux()
+	// Set up main router - HIER WAR DAS PROBLEM!
+	mainRouter := http.NewServeMux()
 
-	// Health check endpoint (outside API path)
-	router.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+	// Health check endpoint (außerhalb der API)
+	mainRouter.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(`{"status":"healthy"}`))
 	})
 
-	// Version endpoint (outside API path)
-	router.HandleFunc("/version", func(w http.ResponseWriter, r *http.Request) {
+	// Version endpoint (außerhalb der API)
+	mainRouter.HandleFunc("/version", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(fmt.Sprintf(`{"version":"%s"}`, version)))
 	})
 
 	// Metrics endpoint
-	router.Handle("/metrics", metricsHandler)
+	mainRouter.Handle("/metrics", metricsHandler)
 
-	// API router
-	router.Handle("/api/", http.StripPrefix("/api", apiRouter.Handler()))
+	// API router - KORRIGIERT: Verwende Handle statt HandleFunc
+	mainRouter.Handle("/api/", apiRouter.Handler())
 
 	// Start server
 	logging.Logger.Infof("Server starting on %s in %s mode", addr, getEnvironmentName())
 	logging.Logger.Infof("Version: %s", version)
 
-	if err := http.ListenAndServe(addr, corsHandler(router)); err != nil {
+	if err := http.ListenAndServe(addr, corsHandler(mainRouter)); err != nil {
 		logging.Logger.Fatalf("Error starting server: %v", err)
 	}
 }

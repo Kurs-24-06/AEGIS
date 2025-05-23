@@ -16,7 +16,7 @@ import (
 func (api *APIRouter) getInfrastructureHandler(w http.ResponseWriter, r *http.Request) {
 	// Mock-Daten aus dem Simulationsmodul abrufen
 	infraData := simulation.GenerateMockInfrastructure()
-	
+
 	response := Response{
 		Status: "success",
 		Data:   infraData,
@@ -28,17 +28,17 @@ func (api *APIRouter) getInfrastructureHandler(w http.ResponseWriter, r *http.Re
 func (api *APIRouter) getInfrastructureDetailsHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id := vars["id"]
-	
+
 	// In einer realen Implementierung würden hier die Daten aus der Datenbank abgerufen werden
 	// Für den Prototypen verwenden wir generierte Daten
-	
+
 	infraData := simulation.GenerateMockInfrastructure()
-	
+
 	// Füge die ID hinzu
 	infraData["id"] = id
 	infraData["name"] = "Cloud Infrastructure " + id
 	infraData["description"] = "Generated infrastructure for demonstration purposes"
-	
+
 	response := Response{
 		Status: "success",
 		Data:   infraData,
@@ -55,7 +55,7 @@ func (api *APIRouter) createInfrastructureHandler(w http.ResponseWriter, r *http
 		writeErrorResponse(w, http.StatusBadRequest, "Invalid request format")
 		return
 	}
-	
+
 	// Mock implementation
 	response := Response{
 		Status:  "success",
@@ -79,29 +79,29 @@ func (api *APIRouter) importInfrastructureHandler(w http.ResponseWriter, r *http
 		writeErrorResponse(w, http.StatusBadRequest, "Invalid request format")
 		return
 	}
-	
+
 	// Überprüfe, ob alle erforderlichen Felder vorhanden sind
-	content, contentOk := requestData["content"].(string)
+	_, contentOk := requestData["content"].(string)
 	fileType, typeOk := requestData["type"].(string)
-	
+
 	if !contentOk || !typeOk {
 		writeErrorResponse(w, http.StatusBadRequest, "Missing required fields: content and type")
 		return
 	}
-	
+
 	// Im echten System würde hier der Inhalt der Datei geparst werden
 	// Für den Prototypen generieren wir einfach Mock-Daten
-	
+
 	// Mock-Infrastruktur generieren
 	infraData := simulation.GenerateMockInfrastructure()
-	
+
 	// Füge Metadaten hinzu
 	infraData["id"] = "imported-" + uuid.New().String()[0:8]
 	infraData["name"] = "Imported Infrastructure"
 	infraData["description"] = "Infrastructure imported from " + fileType + " file"
 	infraData["importedAt"] = time.Now().Format(time.RFC3339)
 	infraData["sourceType"] = fileType
-	
+
 	response := Response{
 		Status:  "success",
 		Message: "Infrastructure imported successfully",

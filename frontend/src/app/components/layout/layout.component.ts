@@ -11,7 +11,7 @@ import { RouterModule, RouterOutlet } from '@angular/router';
     <div class="app-layout">
       <aside class="sidebar">
         <div class="sidebar-header">
-          <a routerLink="/" class="logo">
+          <a routerLink="/dashboard" class="logo">
             <i class="bi bi-shield-lock"></i>
             <span>AEGIS</span>
           </a>
@@ -23,8 +23,9 @@ import { RouterModule, RouterOutlet } from '@angular/router';
               <a
                 [routerLink]="item.path"
                 routerLinkActive="active"
-                [routerLinkActiveOptions]="{ exact: item.path === '/' }"
+                [routerLinkActiveOptions]="{ exact: item.path === '/dashboard' }"
                 class="nav-item"
+                (click)="onNavClick(item.path)"
               >
                 <i class="bi" [ngClass]="item.icon"></i>
                 <span>{{ item.label }}</span>
@@ -101,6 +102,7 @@ import { RouterModule, RouterOutlet } from '@angular/router';
           background-color 0.2s,
           color 0.2s;
         position: relative;
+        cursor: pointer;
       }
 
       .nav-item i {
@@ -155,7 +157,7 @@ import { RouterModule, RouterOutlet } from '@angular/router';
 export class LayoutComponent {
   navItems = [
     {
-      path: '/',
+      path: '/dashboard',
       icon: 'bi-grid-1x2-fill',
       label: 'Dashboard',
     },
@@ -185,4 +187,8 @@ export class LayoutComponent {
       label: 'Einstellungen',
     },
   ];
+
+  onNavClick(path: string): void {
+    console.log('Navigation clicked:', path);
+  }
 }

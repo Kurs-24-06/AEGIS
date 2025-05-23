@@ -51,6 +51,18 @@ func NewAPIRouter() *APIRouter {
     // Füge die Error-Middleware zum Router hinzu
     router.Use(errorMiddleware)
 
+    // Einfacher Test-Handler für Debugging
+    router.HandleFunc("/test", func(w http.ResponseWriter, r *http.Request) {
+        logging.Logger.Info("Test-Handler wurde aufgerufen!")
+        response := Response{
+            Status: "success",
+            Data:   "API Router funktioniert!",
+        }
+        writeJSONResponse(w, http.StatusOK, response)
+    }).Methods("GET")
+    
+    logging.Logger.Info("Test-Handler registriert: /api/test")
+
     // Health check
     router.HandleFunc("/health", api.healthHandler).Methods("GET")
     
@@ -62,11 +74,11 @@ func NewAPIRouter() *APIRouter {
     router.HandleFunc("/auth/logout", api.logoutHandler).Methods("POST")
     router.HandleFunc("/auth/validate-token", api.validateTokenHandler).Methods("POST")
     
-    // Infrastructure endpoints
+    // Infrastructure endpoints - verwende existierende Handler
     router.HandleFunc("/infrastructure", api.getInfrastructureHandler).Methods("GET")
     router.HandleFunc("/infrastructure", api.createInfrastructureHandler).Methods("POST")
-	router.HandleFunc("/infrastructure/{id}", api.getInfrastructureDetailsHandler).Methods("GET")
-	router.HandleFunc("/infrastructure/import", api.importInfrastructureHandler).Methods("POST")
+    router.HandleFunc("/infrastructure/{id}", api.getInfrastructureDetailsHandler).Methods("GET")
+    router.HandleFunc("/infrastructure/import", api.importInfrastructureHandler).Methods("POST")
     
     // Simulation endpoints
     router.HandleFunc("/simulations", api.getSimulationsHandler).Methods("GET")
@@ -81,19 +93,30 @@ func NewAPIRouter() *APIRouter {
     router.HandleFunc("/monitoring/simulations/{id}/events", api.getSimulationEventsHandler).Methods("GET")
     router.HandleFunc("/monitoring/simulations/{id}/resources", api.getAffectedResourcesHandler).Methods("GET")
     
+    // Scenario endpoints - verwende existierende Handler
+    router.HandleFunc("/scenarios", api.getScenariosHandler).Methods("GET")
+    router.HandleFunc("/scenarios/{id}", api.getScenarioHandler).Methods("GET")
+    router.HandleFunc("/scenarios", api.createScenarioHandler).Methods("POST")
+    
     // Initialisiere den Simulations-Service mit Beispieldaten für die Entwicklung
     if os.Getenv("ENVIRONMENT") == "development" {
         simulation.GetService().AddMockData()
-
-	
-	// Scenario endpoints
-	router.HandleFunc("/scenarios", api.getScenariosHandler).Methods("GET")
-	router.HandleFunc("/scenarios/{id}", api.getScenarioHandler).Methods("GET")
-	router.HandleFunc("/scenarios", api.createScenarioHandler).Methods("POST")
     }
 
+    // Debug: Logge alle registrierten Routen
+    logging.Logger.Info("=== Registrierte API-Routen ===")
+    router.Walk(func(route *mux.Route, router *mux.Router, ancestors []*mux.Route) error {
+        pathTemplate, err := route.GetPathTemplate()
+        if err == nil {
+            methods, _ := route.GetMethods()
+            logging.Logger.Infof("Route: %s %v", pathTemplate, methods)
+        }
+        return nil
+    })
+    logging.Logger.Info("=== Ende der Routen ===")
+
     return api
-	}
+}
 
 // Handler returns the router handler
 func (api *APIRouter) Handler() http.Handler {
@@ -124,47 +147,7 @@ func (api *APIRouter) versionHandler(w http.ResponseWriter, r *http.Request) {
 	writeJSONResponse(w, http.StatusOK, response)
 }
 
-// Infrastructure handlers (minimal implementation)
-func (api *APIRouter) getInfrastructureHandler(w http.ResponseWriter, r *http.Request) {
-	// Mock implementation
-	response := Response{
-		Status: "success",
-		Data: []map[string]interface{}{
-			{
-				"id":          "inf-1",
-				"name":        "Test Infrastructure",
-				"description": "Test infrastructure for development",
-				"createdAt":   time.Now().Add(-24 * time.Hour).Format(time.RFC3339),
-			},
-		},
-	}
-	writeJSONResponse(w, http.StatusOK, response)
-}
-
-func (api *APIRouter) createInfrastructureHandler(w http.ResponseWriter, r *http.Request) {
-	// Parse request
-	var requestData map[string]interface{}
-	if err := json.NewDecoder(r.Body).Decode(&requestData); err != nil {
-		logging.Logger.Errorf("Error parsing request: %v", err)
-		writeErrorResponse(w, http.StatusBadRequest, "Invalid request format")
-		return
-	}
-	
-	// Mock implementation
-	response := Response{
-		Status:  "success",
-		Message: "Infrastructure created successfully",
-		Data: map[string]interface{}{
-			"id":          "inf-new",
-			"name":        requestData["name"],
-			"description": requestData["description"],
-			"createdAt":   time.Now().Format(time.RFC3339),
-		},
-	}
-	writeJSONResponse(w, http.StatusCreated, response)
-}
-
-// Simulation handlers
+// Simulation handlers - NUR DIE, DIE NICHT IN ANDEREN DATEIEN SIND
 func (api *APIRouter) getSimulationsHandler(w http.ResponseWriter, r *http.Request) {
 	simService := simulation.GetService()
 	simulations := simService.GetSimulations()
@@ -274,25 +257,7 @@ func (api *APIRouter) pauseSimulationHandler(w http.ResponseWriter, r *http.Requ
 	writeJSONResponse(w, http.StatusOK, response)
 }
 
-// Monitoring handlers
-func (api *APIRouter) getSimulationStatusHandler(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	id := vars["id"]
-	
-	simService := simulation.GetService()
-	status, err := simService.GetSimulationStatus(id)
-	if err != nil {
-		writeErrorResponse(w, http.StatusNotFound, err.Error())
-		return
-	}
-	
-	response := Response{
-		Status: "success",
-		Data:   status,
-	}
-	writeJSONResponse(w, http.StatusOK, response)
-}
-
+// Monitoring handlers - NUR DIE, DIE NICHT IN ANDEREN DATEIEN SIND
 func (api *APIRouter) getSimulationEventsHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id := vars["id"]
@@ -328,43 +293,11 @@ func (api *APIRouter) getAffectedResourcesHandler(w http.ResponseWriter, r *http
     vars := mux.Vars(r)
     id := vars["id"]
     
-    // Erzeuge Mock-Ressourcen für die Simulation
-    resources := []map[string]interface{}{
-        {
-            "id":          "resource-1",
-            "simulationId": id,
-            "name":        "Web Server",
-            "type":        "server",
-            "status":      "vulnerable",
-            "threatLevel": 0.4,
-            "attackVector": "Outdated Apache Version",
-        },
-        {
-            "id":          "resource-2",
-            "simulationId": id,
-            "name":        "Database Server",
-            "type":        "server",
-            "status":      "compromised",
-            "threatLevel": 0.8,
-            "attackVector": "SQL Injection",
-        },
-        {
-            "id":          "resource-3",
-            "simulationId": id,
-            "name":        "Gateway Router",
-            "type":        "router",
-            "status":      "normal",
-            "threatLevel": 0.1,
-        },
-        {
-            "id":          "resource-4",
-            "simulationId": id,
-            "name":        "Admin Workstation",
-            "type":        "workstation",
-            "status":      "attacked",
-            "threatLevel": 0.6,
-            "attackVector": "Phishing Email",
-        },
+    simService := simulation.GetService()
+    resources, err := simService.GetAffectedResources(id)
+    if err != nil {
+        writeErrorResponse(w, http.StatusNotFound, err.Error())
+        return
     }
     
     response := Response{

@@ -11,7 +11,7 @@ import { authGuard } from './services/auth.guard';
 
 export const routes: Routes = [
   // Root path redirect
-  { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
+  { path: '', redirectTo: '/dashboard', pathMatch: 'full' },
 
   // Public routes
   { path: 'login', component: LoginComponent },
@@ -24,12 +24,12 @@ export const routes: Routes = [
     canActivate: [authGuard],
   },
   {
-    path: 'infrastructure',
+    path: 'infrastruktur', // Deutsch für "infrastructure"
     component: InfrastructureComponent,
     canActivate: [authGuard],
   },
   {
-    path: 'simulations',
+    path: 'simulationen', // Deutsch für "simulations"
     component: SimulationsComponent,
     canActivate: [authGuard],
   },
@@ -39,15 +39,16 @@ export const routes: Routes = [
     canActivate: [authGuard],
   },
   {
-    path: 'reports',
+    path: 'berichte', // Deutsch für "reports"
     component: ReportsComponent,
     canActivate: [authGuard],
   },
   {
-    path: 'settings',
+    path: 'einstellungen', // Deutsch für "settings"
     component: SettingsComponent,
     canActivate: [authGuard],
   },
-  // Wildcard route redirects to dashboard
-  { path: '**', redirectTo: 'dashboard' },
+
+  // Fallback route
+  { path: '**', redirectTo: '/dashboard' },
 ];

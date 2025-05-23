@@ -13,15 +13,17 @@ ACTION=${1:-show}
 
 # Get the current git tag, commit hash, and check for dirty state
 LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
-COMMIT_COUNT=$(git rev-list --count ${LATEST_TAG}..HEAD)
-COMMIT_HASH=$(git rev-parse --short HEAD)
+COMMIT_COUNT=$(git rev-list --count ${LATEST_TAG}..HEAD 2>/dev/null || echo "0")
+COMMIT_HASH=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
 # Check if working directory is dirty
-if ! git diff --quiet; then
+if ! git diff --quiet 2>/dev/null; then
   DIRTY="-dirty"
+  IS_DIRTY=true
 else
   DIRTY=""
+  IS_DIRTY=false
 fi
 
 # Calculate version components
@@ -45,7 +47,7 @@ case $ACTION in
     ;;
 
   json)
-    echo "{\"version\":\"$VERSION_NO_V\",\"buildDate\":\"$BUILD_DATE\",\"gitCommit\":\"$COMMIT_HASH\",\"dirty\":${DIRTY:+true}${DIRTY:-false}}"
+    echo "{\"version\":\"$VERSION_NO_V\",\"buildDate\":\"$BUILD_DATE\",\"gitCommit\":\"$COMMIT_HASH\",\"dirty\":$IS_DIRTY}"
     ;;
 
   major)
@@ -83,7 +85,7 @@ case $ACTION in
   "version": "$VERSION_NO_V",
   "buildTimestamp": "$BUILD_DATE",
   "gitCommit": "$COMMIT_HASH",
-  "dirty": ${DIRTY:+true}${DIRTY:-false}
+  "dirty": $IS_DIRTY
 }
 EOF
     echo "- Updated frontend/src/assets/version.json"
@@ -105,7 +107,7 @@ const (
 	GitCommit = "$COMMIT_HASH"
 	
 	// IsDirty indicates if the build was created with uncommitted changes
-	IsDirty = ${DIRTY:+true}${DIRTY:-false}
+	IsDirty = $IS_DIRTY
 )
 EOF
     echo "- Updated backend/internal/config/version.go"
@@ -136,7 +138,7 @@ EOF
     echo "Commit Hash:  $COMMIT_HASH"
     echo "Commit Count: $COMMIT_COUNT (since $LATEST_TAG)"
     echo "Build Date:   $BUILD_DATE"
-    echo "Dirty:        ${DIRTY:+Yes}${DIRTY:-No}"
+    echo "Dirty:        $([ "$IS_DIRTY" = "true" ] && echo "Yes" || echo "No")"
     echo "-------------------------"
     ;;
 
