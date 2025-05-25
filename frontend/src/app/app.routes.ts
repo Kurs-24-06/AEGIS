@@ -7,17 +7,32 @@ import { ReportsComponent } from './components/reports/reports.component';
 import { SettingsComponent } from './components/settings/settings.component';
 import { LoginComponent } from './components/auth/login.component';
 import { RegisterComponent } from './components/auth/register.component';
+import { ForbiddenComponent } from './components/auth/forbidden.components';
 import { authGuard } from './services/auth.guard';
 
 export const routes: Routes = [
   // Root path redirect
   { path: '', redirectTo: '/dashboard', pathMatch: 'full' },
 
-  // Public routes
-  { path: 'login', component: LoginComponent },
-  { path: 'register', component: RegisterComponent },
+  // Public routes (nur für nicht eingeloggte Benutzer)
+  {
+    path: 'login',
+    component: LoginComponent,
+    canActivate: [],
+  },
+  {
+    path: 'register',
+    component: RegisterComponent,
+    canActivate: [],
+  },
 
-  // Protected routes
+  // Forbidden page (für Berechtigungsfehler)
+  {
+    path: 'forbidden',
+    component: ForbiddenComponent,
+  },
+
+  // Protected routes (nur für eingeloggte Benutzer)
   {
     path: 'dashboard',
     component: DashboardComponent,

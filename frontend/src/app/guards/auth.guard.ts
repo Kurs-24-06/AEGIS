@@ -1,96 +1,43 @@
-import { Injectable } from '@angular/core';
-import { CanActivate, CanActivateChild, CanLoad, Router, UrlTree } from '@angular/router';
-import { Observable, map, take } from 'rxjs';
-import { AuthService } from '../services/auth.service';
+import { inject } from '@angular/core';
+import { Router, CanActivateFn } from '@angular/router';
+import { map, take } from 'rxjs/operators';
+import { AuthService } from './auth.service';
 
-@Injectable({
-  providedIn: 'root',
-})
-export class AuthGuard implements CanActivate, CanActivateChild, CanLoad {
-  constructor(
-    private authService: AuthService,
-    private router: Router
-  ) {}
+export const authGuard: CanActivateFn = (route, state) => {
+  const router = inject(Router);
+  const authService = inject(AuthService);
 
-  canActivate(): Observable<boolean | UrlTree> {
-    return this.checkAuth();
-  }
-
-  canActivateChild(): Observable<boolean | UrlTree> {
-    return this.checkAuth();
-  }
-
-  canLoad(): Observable<boolean | UrlTree> {
-    return this.checkAuth();
-  }
-
-  private checkAuth(): Observable<boolean | UrlTree> {
-    return this.authService.isAuthenticated$.pipe(
-      take(1),
-      map(isAuthenticated => {
-        if (isAuthenticated) {
-          return true;
-        }
-        // Redirect to login page if not authenticated
-        return this.router.createUrlTree(['/login'], {
-          queryParams: { returnUrl: this.router.url },
+  return authService.isAuthenticated$.pipe(
+    take(1),
+    map(isAuthenticated => {
+      if (isAuthenticated) {
+        return true;
+      } else {
+        // Weiterleiten zur Login-Seite mit der zurückführenden URL
+        router.navigate(['/login'], {
+          queryParams: { returnUrl: state.url },
         });
-      })
-    );
-  }
-}
+        return false;
+      }
+    })
+  );
+};
 
-@Injectable({
-  providedIn: 'root',
-})
-export class PermissionGuard implements CanActivate, CanActivateChild, CanLoad {
-  constructor(
-    private authService: AuthService,
-    private router: Router
-  ) {}
+// Zusätzlicher Guard für öffentliche Routen (verhindert Zugriff wenn bereits eingeloggt)
+export const notAuthGuard: CanActivateFn = (route, state) => {
+  const router = inject(Router);
+  const authService = inject(AuthService);
 
-  canActivate(route: any): Observable<boolean | UrlTree> {
-    return this.checkPermission(route?.data?.permission);
-  }
-
-  canActivateChild(route: any): Observable<boolean | UrlTree> {
-    return this.checkPermission(route?.data?.permission);
-  }
-
-  canLoad(route: any): Observable<boolean | UrlTree> {
-    return this.checkPermission(route?.data?.permission);
-  }
-
-  private checkPermission(permission: string | string[]): Observable<boolean | UrlTree> {
-    return this.authService.isAuthenticated$.pipe(
-      take(1),
-      map(isAuthenticated => {
-        if (!isAuthenticated) {
-          // Redirect to login if not authenticated
-          return this.router.createUrlTree(['/login'], {
-            queryParams: { returnUrl: this.router.url },
-          });
-        }
-
-        // Check permission
-        if (typeof permission === 'string') {
-          // Single permission check
-          if (this.authService.hasPermission(permission)) {
-            return true;
-          }
-        } else if (Array.isArray(permission)) {
-          // Multiple permissions check (requires all)
-          if (permission.every(p => this.authService.hasPermission(p))) {
-            return true;
-          }
-        } else {
-          // No permission required
-          return true;
-        }
-
-        // Redirect to forbidden page if permission check fails
-        return this.router.createUrlTree(['/forbidden']);
-      })
-    );
-  }
-}
+  return authService.isAuthenticated$.pipe(
+    take(1),
+    map(isAuthenticated => {
+      if (!isAuthenticated) {
+        return true;
+      } else {
+        // Weiterleiten zum Dashboard wenn bereits eingeloggt
+        router.navigate(['/dashboard']);
+        return false;
+      }
+    })
+  );
+};

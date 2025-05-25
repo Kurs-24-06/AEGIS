@@ -1,3 +1,4 @@
+// frontend/src/app/components/auth/login.component.ts
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -19,6 +20,19 @@ import { Subscription } from 'rxjs';
           </div>
           <h2>Log In</h2>
           <p>Adaptive Environment for Guided Intrusion Simulation</p>
+        </div>
+
+        <!-- DEBUG INFO -->
+        <div class="debug-info" *ngIf="showDebugInfo">
+          <h4>Debug Information</h4>
+          <p>
+            <strong>Current Auth Status:</strong>
+            {{ isAuthenticated ? 'Authenticated' : 'Not Authenticated' }}
+          </p>
+          <p><strong>Current User:</strong> {{ currentUser?.username || 'None' }}</p>
+          <p><strong>Return URL:</strong> {{ returnUrl }}</p>
+          <button class="debug-button" (click)="forceLogout()">Force Logout</button>
+          <button class="debug-button" (click)="toggleDebug()">Hide Debug</button>
         </div>
 
         <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="login-form">
@@ -79,6 +93,11 @@ import { Subscription } from 'rxjs';
           <p>For demonstration purposes, use:</p>
           <p><strong>Username:</strong> admin</p>
           <p><strong>Password:</strong> admin</p>
+
+          <!-- Debug Toggle -->
+          <button class="debug-toggle" (click)="toggleDebug()" *ngIf="!showDebugInfo">
+            Show Debug Info
+          </button>
         </div>
       </div>
     </div>
@@ -136,6 +155,51 @@ import { Subscription } from 'rxjs';
         font-size: 14px;
       }
 
+      /* DEBUG STYLES */
+      .debug-info {
+        background-color: #2a2a2a;
+        border: 1px solid #444;
+        border-radius: 4px;
+        padding: 15px;
+        margin-bottom: 20px;
+        font-size: 12px;
+      }
+
+      .debug-info h4 {
+        color: #f59e0b;
+        margin-bottom: 10px;
+        font-size: 14px;
+      }
+
+      .debug-info p {
+        margin: 5px 0;
+        color: #e4e6eb;
+      }
+
+      .debug-button {
+        background-color: #ef4444;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        padding: 5px 10px;
+        font-size: 11px;
+        cursor: pointer;
+        margin-right: 5px;
+        margin-top: 5px;
+      }
+
+      .debug-toggle {
+        background-color: #3b82f6;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        padding: 5px 10px;
+        font-size: 11px;
+        cursor: pointer;
+        margin-top: 10px;
+      }
+
+      /* ... Rest der Styles bleibt gleich ... */
       .login-form {
         display: flex;
         flex-direction: column;
@@ -291,6 +355,12 @@ export class LoginComponent implements OnInit, OnDestroy {
   error = '';
   showPassword = false;
   returnUrl = '/';
+
+  // Debug-Variablen
+  showDebugInfo = false;
+  isAuthenticated = false;
+  currentUser: any = null;
+
   private authSubscription?: Subscription;
 
   constructor(
@@ -301,23 +371,31 @@ export class LoginComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
+    console.log('LoginComponent: Initializing...');
+
     this.loginForm = this.formBuilder.group({
       username: ['', Validators.required],
       password: ['', Validators.required],
       rememberMe: [false],
     });
 
-    // Get return URL from route parameters or default to '/'
-    this.returnUrl = this.route.snapshot.queryParams['returnUrl'] || '/';
+    // Get return URL from route parameters or default to '/dashboard'
+    this.returnUrl = this.route.snapshot.queryParams['returnUrl'] || '/dashboard';
+    console.log('LoginComponent: Return URL set to:', this.returnUrl);
 
-    // Check if already logged in
-    this.authSubscription = this.authService.isAuthenticated$.subscribe(
-      (isAuthenticated: boolean) => {
-        if (isAuthenticated) {
-          this.router.navigate([this.returnUrl]);
-        }
+    // Subscribe to auth state for debugging
+    this.authSubscription = this.authService.authState$.subscribe(authState => {
+      this.isAuthenticated = authState.isAuthenticated;
+      this.currentUser = authState.user;
+
+      console.log('LoginComponent: Auth state changed:', authState);
+
+      // Wenn bereits angemeldet, zur Zielseite weiterleiten
+      if (authState.isAuthenticated && authState.user) {
+        console.log('LoginComponent: User already authenticated, redirecting to:', this.returnUrl);
+        this.router.navigate([this.returnUrl]);
       }
-    );
+    });
   }
 
   // Convenience getter for easy access to form fields
@@ -336,12 +414,15 @@ export class LoginComponent implements OnInit, OnDestroy {
     this.loading = true;
     this.error = '';
 
-    // Verwende immer die login-Methode für Konsistenz
+    console.log('LoginComponent: Attempting login...');
+
     this.authService.login(this.f['username'].value, this.f['password'].value).subscribe({
-      next: () => {
+      next: user => {
+        console.log('LoginComponent: Login successful, redirecting to:', this.returnUrl);
         this.router.navigate([this.returnUrl]);
       },
       error: (error: unknown) => {
+        console.error('LoginComponent: Login failed:', error);
         if (error && typeof error === 'object' && 'message' in error) {
           this.error = (error as { message?: string }).message || 'Invalid username or password';
         } else {
@@ -354,6 +435,16 @@ export class LoginComponent implements OnInit, OnDestroy {
 
   togglePasswordVisibility(): void {
     this.showPassword = !this.showPassword;
+  }
+
+  // Debug-Funktionen
+  toggleDebug(): void {
+    this.showDebugInfo = !this.showDebugInfo;
+  }
+
+  forceLogout(): void {
+    console.log('LoginComponent: Force logout triggered');
+    this.authService.forceLogout();
   }
 
   ngOnDestroy(): void {
